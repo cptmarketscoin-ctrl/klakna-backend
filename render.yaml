@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: klakna-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    repo: https://github.com/cptmarketscoin-ctrl/klakna-backend
+    branch: main
+    envVars:
+      - key: NODE_ENV
+        value: production
