@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Database files
+data/*.db
+
+# Logs
+*.log
+
+# Temp/debug files
+nul
+fix-encoding.js
+restart.js
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Certificates
+*.pem
+*.key
+*.crt
+
+# IDE
+.vscode/
+.idea/

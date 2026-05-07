@@ -1,0 +1,21 @@
+{
+  "name": "klakna-backend",
+  "version": "1.0.0",
+  "description": "Klakna crypto exchange backend - Express 5 + sql.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": "18.x || 20.x || 22.x"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "sql.js": "^1.11.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "uuid": "^9.0.0",
+    "http-proxy-middleware": "^4.0.0",
+    "cors": "^2.8.5"
+  }
+}

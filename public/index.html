@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROOT // Klakna Control Panel</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#000;--card:#0a0a0a;--border:#1a1a1a;--border2:#2a2a2a;
+  --text:#e0e0e0;--text2:#666;--accent:#00ff88;--accent2:#00cc66;
+  --danger:#ff3355;--warning:#ffaa00;--purple:#a855f7;--info:#3b82f6;
+}
+body{
+  background:#000;color:var(--text);font-family:'Courier New',monospace;
+  min-height:100vh;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(0,255,136,0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(168,85,247,0.03) 0%, transparent 50%);
+}
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,0.008) 2px, rgba(0,255,136,0.008) 4px);
+  pointer-events:none;z-index:0;
+}
+
+/* LOGIN */
+.login-container{position:relative;z-index:1;width:440px;margin:auto}
+.root-badge{text-align:center;margin-bottom:28px}
+.root-badge .icon{font-size:40px;margin-bottom:8px;display:block}
+.root-badge .label{font-size:11px;letter-spacing:6px;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);display:inline-block;padding:4px 16px;border-radius:2px}
+.login-box{background:var(--card);border:1px solid var(--border2);border-radius:0;padding:40px 36px;position:relative;box-shadow:0 0 80px rgba(0,255,136,0.05), inset 0 0 60px rgba(0,0,0,0.5)}
+.login-box::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:linear-gradient(to bottom, var(--accent), transparent)}
+.login-box h1{font-size:13px;letter-spacing:4px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;font-weight:400}
+.login-box h2{font-size:26px;font-weight:700;margin-bottom:6px;background:linear-gradient(90deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-box .subtitle{font-size:12px;color:var(--text2);margin-bottom:32px;letter-spacing:1px}
+.field{margin-bottom:20px;position:relative}
+.field label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+.field input{width:100%;padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:0;color:var(--text);font-size:14px;font-family:'Courier New',monospace;transition:border .2s;outline:none}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 12px rgba(0,255,136,0.1)}
+.field input::placeholder{color:#333}
+.pass-wrap{position:relative}.pass-wrap input{padding-right:44px}
+.toggle-pass{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text2);font-size:12px;user-select:none}.toggle-pass:hover{color:var(--accent)}
+.login-btn{width:100%;padding:14px;background:transparent;color:var(--accent);border:1px solid var(--accent);font-size:13px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:'Courier New',monospace;transition:all .2s;margin-top:8px;position:relative;overflow:hidden}
+.login-btn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);transition:width .3s;z-index:-1}
+.login-btn:hover{color:#000}.login-btn:hover::before{width:100%}
+.login-btn:active{transform:scale(0.98)}
+.login-btn:disabled{opacity:.3;cursor:not-allowed}.login-btn:disabled::before{display:none}
+.err-msg{font-size:12px;color:var(--danger);margin-top:16px;text-align:center;min-height:18px;letter-spacing:1px}
+.footer{text-align:center;margin-top:24px;font-size:10px;color:#333;letter-spacing:2px}
+.access-log{margin-top:20px;border-top:1px solid var(--border);padding-top:14px;font-size:10px;color:var(--text2);max-height:80px;overflow:hidden}
+.access-log .log-line{margin-bottom:3px;opacity:0.6}
+.access-log .log-time{color:var(--accent);margin-right:8px}
+#matrix{position:fixed;top:0;left:0;pointer-events:none;opacity:0.04;z-index:0}
+
+/* ADMIN LAYOUT */
+.admin-body{display:flex;min-height:100vh;background:#0a0e17}
+.sidebar{width:220px;background:#0a0a0a;border-right:1px solid var(--border2);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-brand{padding:20px 18px;border-bottom:1px solid var(--border2)}
+.sidebar-brand .brand-text{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--accent)}
+.sidebar-brand .brand-sub{font-size:9px;color:var(--text2);letter-spacing:1px;margin-top:2px}
+.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-item{padding:10px 18px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s;letter-spacing:1px;border-left:2px solid transparent;display:flex;align-items:center;gap:10px}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,0.02);border-left-color:var(--border2)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(0,255,136,0.03)}
+.nav-item .nav-icon{font-size:14px;width:20px;text-align:center}
+.sidebar-footer{padding:14px 18px;border-top:1px solid var(--border2)}
+.sidebar-footer .user-info{font-size:11px;color:var(--accent);letter-spacing:1px}
+.sidebar-footer .logout-btn{font-size:10px;color:var(--danger);cursor:pointer;margin-top:6px;letter-spacing:1px}
+.main-content{margin-left:220px;flex:1;min-height:100vh}
+.topbar{height:48px;background:#0a0a0a;border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 24px;position:sticky;top:0;z-index:50}
+.topbar .page-title{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--text)}
+.topbar .page-title span{color:var(--accent)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.topbar-right .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.topbar-right .status-text{font-size:10px;color:var(--text2);letter-spacing:1px}
+.content-area{padding:24px}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border2);margin-bottom:20px}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-header h3{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--text);font-weight:400}
+.card-body{padding:18px}
+
+/* STATS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border2);padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:2px;bottom:0;background:var(--accent)}
+.stat-card.purple::before{background:var(--purple)}.stat-card.warning::before{background:var(--warning)}.stat-card.danger::before{background:var(--danger)}
+.stat-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+.stat-value{font-size:28px;font-weight:700;color:var(--text);font-family:'Courier New',monospace}
+.stat-value.accent{color:var(--accent)}.stat-value.purple{color:var(--purple)}
+
+/* TABLES */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{text-align:left;padding:10px 14px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--border);font-weight:400;white-space:nowrap}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text)}
+tbody tr:hover{background:rgba(255,255,255,0.01)}
+.badge{display:inline-block;padding:2px 8px;font-size:10px;border-radius:2px;letter-spacing:1px}
+.badge-green{background:rgba(0,255,136,0.1);color:var(--accent);border:1px solid rgba(0,255,136,0.2)}
+.badge-red{background:rgba(255,51,85,0.1);color:var(--danger);border:1px solid rgba(255,51,85,0.2)}
+.badge-yellow{background:rgba(255,170,0,0.1);color:var(--warning);border:1px solid rgba(255,170,0,0.2)}
+.badge-blue{background:rgba(59,130,246,0.1);color:var(--info);border:1px solid rgba(59,130,246,0.2)}
+.badge-gray{background:rgba(100,100,100,0.1);color:var(--text2);border:1px solid var(--border2)}
+
+/* BUTTONS */
+.btn{padding:6px 14px;font-size:11px;letter-spacing:1px;cursor:pointer;font-family:'Courier New',monospace;transition:all .15s;border:1px solid transparent;background:transparent}
+.btn-sm{padding:4px 10px;font-size:10px}
+.btn-accent{color:var(--accent);border-color:var(--accent)}.btn-accent:hover{background:var(--accent);color:#000}
+.btn-danger{color:var(--danger);border-color:var(--danger)}.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-warning{color:var(--warning);border-color:var(--warning)}.btn-warning:hover{background:var(--warning);color:#000}
+.btn-purple{color:var(--purple);border-color:var(--purple)}.btn-purple:hover{background:var(--purple);color:#fff}
+.btn-block{width:100%;text-align:center}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* FORMS */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:6px}
+.form-control{width:100%;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:0;color:var(--text);font-size:13px;font-family:'Courier New',monospace;outline:none;transition:border .2s}
+.form-control:focus{border-color:var(--accent)}
+select.form-control{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
+.form-row{display:flex;gap:16px}.form-row>.form-group{flex:1}
+
+/* PAGINATION */
+.pagination{display:flex;gap:4px;align-items:center;padding:14px 18px;border-top:1px solid var(--border)}
+.page-btn{padding:4px 10px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--border2);color:var(--text2);font-family:'Courier New',monospace;transition:all .15s}
+.page-btn:hover{border-color:var(--accent);color:var(--accent)}
+.page-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* SEARCH */
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.search-input{padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);color:var(--text);font-size:12px;font-family:'Courier New',monospace;outline:none;width:240px;transition:border .2s}
+.search-input:focus{border-color:var(--accent)}.search-input::placeholder{color:#333}
+
+/* MODAL */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--card);border:1px solid var(--border2);width:500px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.modal-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--text);font-weight:400}
+.modal-close{cursor:pointer;color:var(--text2);font-size:16px}.modal-close:hover{color:var(--danger)}
+.modal-body{padding:18px}
+.modal-footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+
+/* SQL */
+.sql-editor{width:100%;min-height:120px;padding:12px;background:#050505;border:1px solid var(--border2);color:var(--accent);font-family:'Courier New',monospace;font-size:13px;resize:vertical;outline:none}
+.sql-result{margin-top:16px;background:#050505;border:1px solid var(--border2);max-height:300px;overflow:auto}
+.sql-result table{font-size:12px}
+
+/* MISC */
+.loading{text-align:center;padding:40px;color:var(--text2);font-size:12px;letter-spacing:2px}
+.empty{text-align:center;padding:40px;color:var(--text2);font-size:12px}
+
+@media(max-width:768px){
+  .sidebar{width:100%;position:relative;flex-direction:row;height:48px;overflow-x:auto}
+  .sidebar-brand,.sidebar-footer{display:none}
+  .sidebar-nav{display:flex;padding:0;gap:0}
+  .nav-item{padding:14px 12px;border-left:none;border-bottom:2px solid transparent;white-space:nowrap}
+  .nav-item.active{border-left:none;border-bottom-color:var(--accent)}
+  .nav-item .nav-text{display:none}
+  .main-content{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<canvas id="matrix"></canvas>
+
+<!-- LOGIN -->
+<div class="login-container" id="loginView">
+  <div class="root-badge"><span class="icon">&#x2B21;</span><div class="label">Root Access Only</div></div>
+  <div class="login-box">
+    <h1>Klakna Control Panel</h1>
+    <h2>ADMIN LOGIN</h2>
+    <div class="subtitle">// unrestricted system access required</div>
+    <div class="field"><label>Username</label><input id="loginUser" type="text" value="root" placeholder="Enter username..." autocomplete="off" autofocus></div>
+    <div class="field"><label>Password</label><div class="pass-wrap"><input id="loginPass" type="password" value="admin888" placeholder="Enter password..." autocomplete="off"><span class="toggle-pass" onclick="togglePass()">SHOW</span></div></div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">&#x25B8; AUTHENTICATE</button>
+    <div class="err-msg" id="loginError"></div>
+    <div class="access-log" id="accessLog"></div>
+  </div>
+  <div class="footer">[ klakna backend v2.0 ] &#8212; authorized personnel only</div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="admin-body" id="adminView" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-brand"><div class="brand-text">&#x2B21; KLAKNA</div><div class="brand-sub">control panel v2.0</div></div>
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <div class="sidebar-footer"><div class="user-info" id="sidebarUser">ROOT</div><div class="logout-btn" onclick="doLogout()">[ logout ]</div></div>
+  </div>
+  <div class="main-content">
+    <div class="topbar"><div class="page-title"><span id="pageIcon">&#x25C8;</span> <span id="pageTitle">DASHBOARD</span></div><div class="topbar-right"><div><span class="status-dot"></span><span class="status-text">SYSTEM ONLINE</span></div></div></div>
+    <div class="content-area" id="contentArea"></div>
+  </div>
+</div>
+
+<script>
+// ===== MATRIX RAIN =====
+(function(){
+  const c=document.getElementById('matrix'),ctx=c.getContext('2d');
+  c.width=innerWidth;c.height=innerHeight;
+  const chars='01ABCDEFGabcdef0123456789',font=12,cols=Math.floor(c.width/font),drops=Array(cols).fill(1);
+  function draw(){ctx.fillStyle='rgba(0,0,0,0.05)';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#00ff88';ctx.font=font+'px monospace';for(let i=0;i<drops.length;i++){ctx.fillText(chars[Math.floor(Math.random()*chars.length)],i*font,drops[i]*font);if(drops[i]*font>c.height&&Math.random()>.975)drops[i]=0;drops[i]++}}
+  setInterval(draw,45);
+  addEventListener('resize',()=>{c.width=innerWidth;c.height=innerHeight});
+})();
+
+// ===== ACCESS LOG =====
+const logEl=document.getElementById('accessLog');
+['[OK] Firewall: inbound traffic filtered','[OK] SSL/TLS: handshake complete','[WAIT] Biometric: standby...'].forEach((l,i)=>{setTimeout(()=>{const t=new Date().toTimeString().slice(0,8),d=document.createElement('div');d.className='log-line';d.innerHTML='<span class="log-time">'+t+'</span>'+l;logEl.prepend(d)},600+i*400)});
+
+function togglePass(){const i=document.getElementById('loginPass'),t=document.querySelector('.toggle-pass');i.type=i.type==='password'?'text':'password';t.textContent=i.type==='password'?'SHOW':'HIDE'}
+
+let token=localStorage.getItem('admin_token');
+
+async function doLogin(){
+  const btn=document.getElementById('loginBtn'),err=document.getElementById('loginError');
+  btn.disabled=true;err.textContent='Connecting...';
+  try{
+    const resp = await fetch('/admin/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:document.getElementById('loginUser').value,password:document.getElementById('loginPass').value})
+    });
+    err.textContent='Got status: '+resp.status+'...';
+    const text = await resp.text();
+    let r;
+    try { r = JSON.parse(text); } catch(e) {
+      err.textContent='[ERROR] Invalid JSON (status='+resp.status+'): '+text.slice(0,300);
+      btn.disabled=false;
+      return;
+    }
+    if(r.code===200){token=r.data.token;localStorage.setItem('admin_token',token);setTimeout(showAdmin,600)}else{err.textContent='[DENIED] '+(r.msg||'Auth failed');btn.disabled=false}
+  }catch(e){err.textContent='[ERROR] '+e.name+': '+e.message;btn.disabled=false}
+}
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+function doLogout(){token=null;localStorage.removeItem('admin_token');location.reload()}
+
+</script>
+<script src="/admin/app.js?v=20260507" onerror="document.body.innerHTML='<p style=color:red>app.js 加载失败！请检查控制台或强制刷新(Ctrl+Shift+R)</p>'"></script>
+</body>
+</html>
