@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字货币控制面板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   KLAKNA CONTROL PANEL — Professional Dark Theme v3
+   ============================================================ */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  /* Core palette — dark, professional, no neon */
+  --bg-primary:#0b0f19;
+  --bg-secondary:#111827;
+  --bg-card:#1a2035;
+  --bg-card-hover:#1e2642;
+  --bg-input:#0f1629;
+  --bg-sidebar:#0d1321;
+
+  --border:#1e293b;
+  --border-active:#334155;
+
+  --text-primary:#f1f5f9;
+  --text-secondary:#94a3b8;
+  --text-muted:#475569;
+
+  /* Backward compatibility aliases for admin-app.js */
+  --bg:#0b0f19;--card:#1a2035;--border2:#1e293b;
+  --text:#f1f5f9;--text2:#94a3b8;--accent2:#2563eb;
+  --info:#3b82f6;--danger:#ef4444;--warning:#f59e0b;
+
+  --accent:#3b82f6;
+  --accent-hover:#2563eb;
+  --accent-subtle:rgba(59,130,246,0.1);
+
+  --green:#10b981;
+  --green-subtle:rgba(16,185,129,0.1);
+  --red:#ef4444;
+  --red-subtle:rgba(239,68,68,0.1);
+  --yellow:#f59e0b;
+  --yellow-subtle:rgba(245,158,11,0.1);
+  --purple:#8b5cf6;
+  --purple-subtle:rgba(139,92,246,0.1);
+  --cyan:#06b6d4;
+
+  --radius:8px;
+  --radius-sm:6px;
+  --radius-lg:12px;
+  --shadow:0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -4px rgba(0,0,0,0.3);
+  --transition:all 0.15s ease;
+}
+
+body{
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height:100vh;
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* ===== LOGIN ===== */
+.login-container{
+  position:relative;
+  z-index:1;
+  width:420px;
+  max-width:95vw;
+  margin:auto;
+  padding:60px 0;
+}
+.root-badge{text-align:center;margin-bottom:28px}
+.root-badge .icon{font-size:36px;margin-bottom:8px;display:block;color:var(--accent)}
+.root-badge .label{
+  font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--accent);background:var(--accent-subtle);
+  border:1px solid rgba(59,130,246,0.2);
+  display:inline-block;padding:5px 16px;border-radius:20px;
+  font-weight:500;
+}
+.login-box{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:36px 32px;
+  position:relative;
+  box-shadow:var(--shadow-lg);
+}
+.login-box h1{
+  font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:4px;font-weight:500;
+}
+.login-box h2{
+  font-size:24px;font-weight:700;margin-bottom:6px;color:var(--text-primary);
+}
+.login-box .subtitle{
+  font-size:13px;color:var(--text-secondary);margin-bottom:28px;
+}
+.field{margin-bottom:18px;position:relative}
+.field label{
+  display:block;font-size:12px;font-weight:500;
+  color:var(--text-secondary);margin-bottom:6px;
+}
+.field input{
+  width:100%;padding:10px 14px;
+  background:var(--bg-input);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text-primary);font-size:14px;
+  font-family:'Inter',sans-serif;
+  transition:var(--transition);outline:none;
+}
+.field input:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-subtle);
+}
+.field input::placeholder{color:var(--text-muted)}
+.pass-wrap{position:relative}.pass-wrap input{padding-right:44px}
+.toggle-pass{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  cursor:pointer;color:var(--text-muted);font-size:11px;
+  font-weight:500;user-select:none;letter-spacing:1px;
+}
+.toggle-pass:hover{color:var(--accent)}
+.login-btn{
+  width:100%;padding:11px;background:var(--accent);color:#fff;
+  border:none;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;letter-spacing:1px;
+  cursor:pointer;font-family:'Inter',sans-serif;
+  transition:var(--transition);margin-top:8px;
+}
+.login-btn:hover{background:var(--accent-hover)}
+.login-btn:active{transform:scale(0.98)}
+.login-btn:disabled{opacity:.4;cursor:not-allowed}
+.err-msg{font-size:12px;color:var(--red);margin-top:14px;text-align:center;min-height:18px}
+.footer{
+  text-align:center;margin-top:24px;
+  font-size:11px;color:var(--text-muted);letter-spacing:0.5px;
+}
+.access-log{
+  margin-top:20px;border-top:1px solid var(--border);
+  padding-top:14px;font-size:11px;color:var(--text-muted);
+  max-height:80px;overflow:hidden;
+  font-family:'JetBrains Mono',monospace;
+}
+.access-log .log-line{margin-bottom:3px;opacity:0.7}
+.access-log .log-time{color:var(--accent);margin-right:8px}
+
+/* ===== ADMIN LAYOUT ===== */
+.admin-body{display:flex;min-height:100vh;background:var(--bg-primary)}
+.sidebar{
+  width:240px;background:var(--bg-sidebar);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:100;
+}
+.sidebar-brand{
+  padding:20px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.sidebar-brand .brand-icon{
+  width:32px;height:32px;border-radius:var(--radius-sm);
+  background:var(--accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;flex-shrink:0;
+}
+.sidebar-brand .brand-text{
+  font-size:14px;font-weight:600;color:var(--text-primary);
+  letter-spacing:0.5px;
+}
+.sidebar-brand .brand-sub{
+  font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-top:1px;
+}
+.sidebar-nav{flex:1;padding:8px;overflow-y:auto}
+.nav-item{
+  padding:9px 14px;font-size:13px;color:var(--text-secondary);
+  cursor:pointer;transition:var(--transition);
+  border-radius:var(--radius-sm);display:flex;
+  align-items:center;gap:10px;margin-bottom:2px;
+  font-weight:400;border-left:2px solid transparent;
+}
+.nav-item:hover{color:var(--text-primary);background:rgba(255,255,255,0.04)}
+.nav-item.active{
+  color:var(--accent);background:var(--accent-subtle);
+  font-weight:500;
+}
+.nav-item .nav-icon{
+  font-size:12px;width:18px;text-align:center;
+  font-family:'JetBrains Mono',monospace;
+  font-weight:500;
+}
+.sidebar-footer{
+  padding:14px 16px;border-top:1px solid var(--border);
+}
+.sidebar-footer .user-info{
+  font-size:12px;color:var(--accent);font-weight:500;
+}
+.sidebar-footer .logout-btn{
+  font-size:11px;color:var(--red);cursor:pointer;
+  margin-top:6px;font-weight:500;
+}
+.sidebar-footer .logout-btn:hover{text-decoration:underline}
+
+.main-content{margin-left:240px;flex:1;min-height:100vh}
+.topbar{
+  height:52px;background:var(--bg-secondary);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(12px);
+}
+.topbar .page-title{
+  font-size:14px;color:var(--text-primary);font-weight:600;
+}
+.topbar .page-title span{color:var(--accent)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.topbar-right .status-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--green);display:inline-block;
+  margin-right:6px;animation:pulse 2s infinite;
+  box-shadow:0 0 6px var(--green);
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-right .status-text{
+  font-size:12px;color:var(--text-secondary);font-weight:500;
+}
+.content-area{padding:24px}
+
+/* ===== CARDS ===== */
+.card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);margin-bottom:16px;
+  overflow:hidden;
+}
+.card-header{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-header h3{
+  font-size:13px;color:var(--text-primary);font-weight:600;
+}
+.card-body{padding:18px}
+
+/* ===== STATS ===== */
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:16px;margin-bottom:24px;
+}
+.stat-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;
+  position:relative;overflow:hidden;
+  transition:var(--transition);
+}
+.stat-card:hover{border-color:var(--border-active);transform:translateY(-1px)}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;width:3px;bottom:0;
+  background:var(--accent);border-radius:0 0 0 0;
+}
+.stat-card.purple::before{background:var(--purple)}
+.stat-card.warning::before{background:var(--yellow)}
+.stat-card.danger::before{background:var(--red)}
+.stat-label{
+  font-size:11px;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:8px;
+  letter-spacing:0.5px;font-weight:500;
+}
+.stat-value{
+  font-size:26px;font-weight:700;
+  color:var(--text-primary);
+  font-family:'JetBrains Mono',monospace;
+}
+.stat-value.accent{color:var(--accent)}
+.stat-value.purple{color:var(--purple)}
+
+/* ===== TABLES ===== */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{
+  text-align:left;padding:10px 14px;
+  font-size:11px;text-transform:uppercase;
+  color:var(--text-muted);border-bottom:1px solid var(--border);
+  font-weight:500;white-space:nowrap;letter-spacing:0.5px;
+  background:rgba(0,0,0,0.15);
+}
+tbody td{
+  padding:10px 14px;border-bottom:1px solid rgba(30,41,59,0.5);
+  white-space:nowrap;color:var(--text-primary);
+}
+tbody tr:hover{background:rgba(255,255,255,0.02)}
+
+/* ===== BADGES ===== */
+.badge{
+  display:inline-flex;align-items:center;
+  padding:3px 10px;font-size:11px;border-radius:20px;
+  font-weight:500;letter-spacing:0.3px;
+}
+.badge-green{background:var(--green-subtle);color:var(--green);border:1px solid rgba(16,185,129,0.2)}
+.badge-red{background:var(--red-subtle);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
+.badge-yellow{background:var(--yellow-subtle);color:var(--yellow);border:1px solid rgba(245,158,11,0.2)}
+.badge-blue{background:var(--accent-subtle);color:var(--accent);border:1px solid rgba(59,130,246,0.2)}
+.badge-gray{background:rgba(71,85,105,0.15);color:var(--text-secondary);border:1px solid rgba(71,85,105,0.2)}
+
+/* ===== BUTTONS ===== */
+.btn{
+  padding:6px 14px;font-size:12px;font-weight:500;
+  cursor:pointer;font-family:'Inter',sans-serif;
+  transition:var(--transition);border:1px solid transparent;
+  background:transparent;border-radius:var(--radius-sm);
+}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-accent{color:var(--accent);border-color:rgba(59,130,246,0.3);background:var(--accent-subtle)}
+.btn-accent:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-danger{color:var(--red);border-color:rgba(239,68,68,0.3);background:var(--red-subtle)}
+.btn-danger:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-warning{color:var(--yellow);border-color:rgba(245,158,11,0.3);background:var(--yellow-subtle)}
+.btn-warning:hover{background:var(--yellow);color:#000;border-color:var(--yellow)}
+.btn-purple{color:var(--purple);border-color:rgba(139,92,246,0.3);background:var(--purple-subtle)}
+.btn-purple:hover{background:var(--purple);color:#fff;border-color:var(--purple)}
+.btn-block{width:100%;text-align:center}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ===== FORMS ===== */
+.form-group{margin-bottom:16px}
+.form-group label{
+  display:block;font-size:12px;font-weight:500;
+  color:var(--text-secondary);margin-bottom:6px;
+}
+.form-control{
+  width:100%;padding:9px 12px;
+  background:var(--bg-input);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text-primary);font-size:13px;
+  font-family:'Inter',sans-serif;
+  outline:none;transition:var(--transition);
+}
+.form-control:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-subtle);
+}
+select.form-control{
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:30px;
+}
+.form-row{display:flex;gap:16px}
+.form-row>.form-group{flex:1}
+
+/* ===== PAGINATION ===== */
+.pagination{
+  display:flex;gap:4px;align-items:center;
+  padding:14px 18px;border-top:1px solid var(--border);
+}
+.page-btn{
+  padding:5px 10px;font-size:12px;cursor:pointer;
+  background:transparent;border:1px solid var(--border);
+  color:var(--text-secondary);font-family:'Inter',sans-serif;
+  border-radius:var(--radius-sm);transition:var(--transition);
+}
+.page-btn:hover{border-color:var(--accent);color:var(--accent)}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ===== SEARCH / TOOLBAR ===== */
+.toolbar{
+  display:flex;gap:12px;align-items:center;
+  flex-wrap:wrap;margin-bottom:16px;
+}
+.search-input{
+  padding:8px 12px;background:var(--bg-input);
+  border:1px solid var(--border);
+  color:var(--text-primary);font-size:13px;
+  font-family:'Inter',sans-serif;outline:none;
+  width:260px;transition:var(--transition);
+  border-radius:var(--radius-sm);
+}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-subtle)}
+.search-input::placeholder{color:var(--text-muted)}
+
+/* ===== MODAL ===== */
+.modal-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.7);z-index:1000;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;
+  box-shadow:var(--shadow-lg);
+}
+.modal-header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-header h3{font-size:14px;color:var(--text-primary);font-weight:600}
+.modal-close{
+  cursor:pointer;color:var(--text-muted);font-size:18px;
+  width:28px;height:28px;display:flex;align-items:center;
+  justify-content:center;border-radius:var(--radius-sm);
+  transition:var(--transition);
+}
+.modal-close:hover{color:var(--red);background:var(--red-subtle)}
+.modal-body{padding:20px}
+.modal-footer{
+  padding:14px 20px;border-top:1px solid var(--border);
+  display:flex;gap:10px;justify-content:flex-end;
+}
+
+/* ===== SQL ===== */
+.sql-editor{
+  width:100%;min-height:120px;padding:12px;
+  background:var(--bg-input);border:1px solid var(--border);
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  resize:vertical;outline:none;border-radius:var(--radius-sm);
+}
+.sql-result{
+  margin-top:16px;background:var(--bg-input);
+  border:1px solid var(--border);
+  max-height:300px;overflow:auto;border-radius:var(--radius-sm);
+}
+.sql-result table{font-size:12px}
+
+/* ===== MISC ===== */
+.loading{
+  text-align:center;padding:40px;color:var(--text-muted);
+  font-size:13px;letter-spacing:1px;
+}
+.empty{
+  text-align:center;padding:40px;color:var(--text-muted);font-size:13px;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-active);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px){
+  .sidebar{
+    width:100%;position:relative;flex-direction:row;
+    height:48px;overflow-x:auto;
+  }
+  .sidebar-brand,.sidebar-footer{display:none}
+  .sidebar-nav{display:flex;padding:0;gap:0}
+  .nav-item{
+    padding:14px 12px;border-left:none;
+    border-bottom:2px solid transparent;white-space:nowrap;
+    border-radius:0;
+  }
+  .nav-item.active{border-left:none;border-bottom-color:var(--accent)}
+  .nav-item .nav-text{display:none}
+  .main-content{margin-left:0}
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.stat-card{animation:fadeIn 0.3s ease}
+.stat-card:nth-child(2){animation-delay:0.05s}
+.stat-card:nth-child(3){animation-delay:0.1s}
+.stat-card:nth-child(4){animation-delay:0.15s}
+.stat-card:nth-child(5){animation-delay:0.2s}
+.stat-card:nth-child(6){animation-delay:0.25s}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-container" id="loginView">
+  <div class="root-badge">
+    <span class="icon">&#x2B21;</span>
+    <div class="label">Admin Access</div>
+  </div>
+  <div class="login-box">
+    <h1>数字货币控制面板</h1>
+    <h2>Sign In</h2>
+    <div class="subtitle">Enter your credentials to access the dashboard</div>
+    <div class="field">
+      <label>Username</label>
+      <input id="loginUser" type="text" value="root" placeholder="Enter username..." autocomplete="off" autofocus>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <div class="pass-wrap">
+        <input id="loginPass" type="password" value="admin888" placeholder="Enter password..." autocomplete="off">
+        <span class="toggle-pass" onclick="togglePass()">SHOW</span>
+      </div>
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div class="err-msg" id="loginError"></div>
+    <div class="access-log" id="accessLog"></div>
+  </div>
+  <div class="footer">数字货币控制面板 v4.0 &mdash; Authorized Personnel Only</div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="admin-body" id="adminView" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">&#x2B21;</div>
+      <div>
+        <div class="brand-text">数字货币</div>
+        <div class="brand-sub">控制面板 v4.0</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <div class="sidebar-footer">
+      <div class="user-info" id="sidebarUser">ROOT</div>
+      <div class="logout-btn" onclick="doLogout()">Sign Out</div>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="topbar">
+      <div class="page-title">
+        <span id="pageIcon">&#x25C8;</span> <span id="pageTitle">DASHBOARD</span>
+      </div>
+      <div class="topbar-right">
+        <div>
+          <span class="status-dot"></span>
+          <span class="status-text">SYSTEM ONLINE</span>
+        </div>
+      </div>
+    </div>
+    <div class="content-area" id="contentArea"></div>
+  </div>
+</div>
+
+<script>
+// ===== ACCESS LOG =====
+const logEl=document.getElementById('accessLog');
+['[OK] TLS handshake complete','[OK] Firewall active','[OK] Services ready'].forEach((l,i)=>{
+  setTimeout(()=>{
+    const t=new Date().toTimeString().slice(0,8);
+    const d=document.createElement('div');
+    d.className='log-line';
+    d.innerHTML='<span class="log-time">'+t+'</span>'+l;
+    logEl.prepend(d);
+  },200+i*300);
+});
+
+function togglePass(){
+  const i=document.getElementById('loginPass');
+  const t=document.querySelector('.toggle-pass');
+  i.type=i.type==='password'?'text':'password';
+  t.textContent=i.type==='password'?'SHOW':'HIDE';
+}
+
+window.token=localStorage.getItem('admin_token');
+
+async function doLogin(){
+  const btn=document.getElementById('loginBtn');
+  const err=document.getElementById('loginError');
+  err.style.color='';
+  err.style.display='block';
+  btn.disabled=true;
+  btn.textContent='Signing in...';
+  err.textContent='Connecting...';
+  try{
+    const resp = await fetch('/admin/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        username:document.getElementById('loginUser').value,
+        password:document.getElementById('loginPass').value
+      })
+    });
+    err.textContent='Got status: '+resp.status+'...';
+    const text = await resp.text();
+    let r;
+    try { r = JSON.parse(text); } catch(e) {
+      err.textContent='Invalid response: '+text.slice(0,200);
+      btn.disabled=false;
+      btn.textContent='Sign In';
+      return;
+    }
+    if(r.code===200){
+      window.token=r.data.token;
+      localStorage.setItem('admin_token',window.token);
+      btn.textContent='Success! Loading...';
+      err.textContent='Login OK, loading panel...';
+      err.style.color='#10b981';
+      if(typeof showAdmin==='function'){
+        setTimeout(showAdmin,300);
+      } else {
+        err.textContent='Panel JS not loaded, refreshing...';
+        setTimeout(()=>location.reload(),1000);
+      }
+    } else {
+      err.textContent=(r.msg||'Authentication failed');
+      err.style.color='#ef4444';
+      btn.disabled=false;
+      btn.textContent='Sign In';
+    }
+  }catch(e){
+    err.textContent='Connection error: '+e.message;
+    err.style.color='#ef4444';
+    btn.disabled=false;
+    btn.textContent='Sign In';
+    console.error('[Login Error]',e);
+  }
+}
+
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+function doLogout(){window.token=null;localStorage.removeItem('admin_token');location.reload()}
+
+</script>
+<script src="/admin/app.js?v=20260510e" onerror="document.body.innerHTML='<p style=color:red>app.js load failed. Force refresh (Ctrl+Shift+R)</p>'"></script>
+</body>
+</html>

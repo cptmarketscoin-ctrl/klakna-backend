@@ -1,0 +1,25 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\Administrator\\WorkBuddy\\2026-05-05-task-1\\klakna-backend\\logs\\.e130fb2375ce8e54b5dc9b66c862879b91cf6887-audit.json",
+    "files": [
+        {
+            "date": 1778301323567,
+            "name": "C:\\Users\\Administrator\\WorkBuddy\\2026-05-05-task-1\\klakna-backend\\logs\\combined-2026-05-09.log",
+            "hash": "9956bde113109cca6681ce2fe7e62662c02874c14eb3e02bc5e82f7434606b4f"
+        },
+        {
+            "date": 1778342402682,
+            "name": "C:\\Users\\Administrator\\WorkBuddy\\2026-05-05-task-1\\klakna-backend\\logs\\combined-2026-05-10.log",
+            "hash": "cc4944fe9b02ccd355625dee16ade949c54e1e58c46289b29a3d3c982c47e1ec"
+        },
+        {
+            "date": 1778436926232,
+            "name": "C:\\Users\\Administrator\\WorkBuddy\\2026-05-05-task-1\\klakna-backend\\logs\\combined-2026-05-11.log",
+            "hash": "56151c80ce12cdf284e943d15f2caad6458a3708e431ba1b74f6d2396cf84bd7"
+        }
+    ],
+    "hashType": "sha256"
+}
