@@ -209,13 +209,23 @@ async function fetchPrices() {
     const { status, data } = await httpsGet(url);
 
     if (status !== 200) {
-      console.warn(`[PriceFetcher] CoinGecko returned ${status}, keeping last prices`);
+      console.warn(`[PriceFetcher] CoinGecko returned ${status}, trying Binance backup...`);
       
       // 429 或 5xx 错误，记录失败
       if (status === 429 || status >= 500) {
         recordFailure();
       }
       
+      // 尝试 Binance 备份源
+      const binanceOk = await fetchPricesFromBinance();
+      if (binanceOk) {
+        recordSuccess();
+        isFetching = false;
+        return;
+      }
+      
+      // Binance 也失败，保持上次价格
+      console.warn('[PriceFetcher] Both CoinGecko and Binance failed, keeping last prices');
       isFetching = false;
       return;
     }
@@ -275,6 +285,54 @@ async function fetchPrices() {
   }
   
   isFetching = false;
+}
+
+// ============================================================
+// Binance 备份价格源（CoinGecko 失败时使用）
+// ============================================================
+async function fetchPricesFromBinance() {
+  try {
+    const symbols = Object.values(COINGECKO_MAP).map(info => info.symbol);
+    const symbolsParam = JSON.stringify(symbols);
+    const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`;
+
+    console.log('[PriceFetcher] Trying Binance backup...');
+
+    const { status, data } = await httpsGet(url);
+    if (status !== 200 || !Array.isArray(data)) {
+      console.warn(`[PriceFetcher] Binance returned ${status}, data:`, data);
+      return false;
+    }
+
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    let updated = 0;
+
+    for (const ticker of data) {
+      const symbol = ticker.symbol;
+      const price = parseFloat(ticker.lastPrice);
+      if (!price || isNaN(price)) continue;
+
+      const changePercent = parseFloat(ticker.priceChangePercent) || 0;
+      const volume24h = parseFloat(ticker.quoteVolume) || 0;
+
+      priceCache[symbol] = {
+        price,
+        change_24h: changePercent,
+        change_percent: changePercent,
+        volume_24h: volume24h,
+        market_cap: 0,
+        updated_at: now,
+      };
+      updated++;
+    }
+
+    global.__priceCache = priceCache;
+    console.log(`[PriceFetcher] ✅ Binance backup updated ${updated} coins at ${now}`);
+    return true;
+  } catch(e) {
+    console.warn('[PriceFetcher] ❌ Binance backup error:', e.message);
+    return false;
+  }
 }
 
 // ============================================================

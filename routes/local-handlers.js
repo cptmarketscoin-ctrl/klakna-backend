@@ -519,35 +519,31 @@ function handleFuturesBuy(path, body, user) {
   if (!usdt || usdt.available < margin) return { code: 400, data: null, msg: 'Insufficient margin' };
   // 开仓价：优先用请求中的 price，否则取实时行情缓存
   let openPrice = price || 0;
-  console.log('[DEBUG] handleFuturesBuy - symbol:', symbol, '| price param:', price, '| openPrice before cache:', openPrice);
   if (openPrice === 0) {
     const cache = global.__priceCache || {};
     const s = (symbol || '').toUpperCase();
-    console.log('[DEBUG] Checking cache for symbol:', s, '| cache keys:', Object.keys(cache).join(', '));
     if (cache[s] && cache[s].price) {
       openPrice = parseFloat(cache[s].price);
-      console.log('[DEBUG] openPrice from cache:', openPrice);
-    } else {
-      console.log('[DEBUG] Cache miss for', s, '| cache[s]:', cache[s]);
     }
   }
-  console.log('[DEBUG] Final openPrice:', openPrice);
   const fee = margin * config.FEE_RATE_FUTURES;
   const orderNo = uuidv4().replace(/-/g, '').substring(0, 20).toUpperCase();
   const db = getDbSync();
   db.run("UPDATE wallets SET available = available - ? WHERE user_id = ? AND coin_symbol = ?", [margin, user.id, 'USDT']);
   const stmt = db.prepare("INSERT INTO positions (user_id, symbol, side, leverage, open_price, amount, margin, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')");
   stmt.run([user.id, symbol, side || 'long', leverage || 1, openPrice, amount, margin, fee]);
-  const positionId = db.prepare("SELECT last_insert_rowid() as id").get().id;
+  const positionId = queryOne('SELECT last_insert_rowid() as id').id;
   saveDb();
   return { code: 200, data: { orderNo, positionId, symbol, side: side || 'long', openPrice, margin, fee }, msg: 'success' };
 }
 
 function handleFuturesClose(path, body, user) {
   if (!user) return { code: 401, data: null, msg: 'Unauthorized' };
+  try {
   const { id } = body;
+  if (!id) return { code: 400, data: null, msg: 'Missing position id' };
   const pos = queryOne("SELECT * FROM positions WHERE user_id = ? AND id = ? AND status = 'open'", [user.id, id]);
-  if (!pos) return { code: 400, data: null, msg: 'Position not found' };
+  if (!pos) return { code: 400, data: null, msg: 'Position not found, id: ' + id };
 
   // 获取当前市场价
   const cache = global.__priceCache || {};
@@ -570,6 +566,10 @@ function handleFuturesClose(path, body, user) {
     [user.id, 'futures_close', 'USDT', pnl, 0, `Close ${pos.symbol} ${pos.side} PnL:${pnl.toFixed(2)}`]);
   saveDb();
   return { code: 200, data: { positionId: id, openPrice: pos.open_price, closePrice: closePrice.toFixed(8), pnl: pnl.toFixed(2), returnAmount: Math.max(ret, 0).toFixed(2) }, msg: 'success' };
+  } catch(e) {
+    console.error('[ERROR] handleFuturesClose error:', e.message, e.stack);
+    return { code: 500, data: null, msg: 'Internal error: ' + (e.message || e) };
+  }
 }
 
 // ========== 订单 ==========
