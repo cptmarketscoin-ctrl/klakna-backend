@@ -219,17 +219,30 @@ app.use((req, res, next) => {
     return next();
   }
 
-  // 🚀 价格/行情接口完全跳过频率限制（高频调用）
+  // 🚀 完全跳过频率限制的路径（前端高频调用的所有接口）
   const skipPaths = [
+    // 行情/价格接口
     '/exchange/rockieCoinFutures/getPrice',
     '/exchange/rockieCoinFutures/getSymbols',
     '/exchange/rockieCoinFutures/',
     '/rockieCoinFutures/',
     '/getPrice',
     '/getSymbols',
+    // 新闻/消息接口
+    '/exchange/RockieNews',
+    '/exchange/RockieMessage',
+    // 交易视图接口
+    '/exchange/tradingView',
+    // 首页接口
+    '/exchange/Home',
+    // 用户接口（登录/注册高频）
+    '/exchange/user/login',
+    '/exchange/user/register',
+    '/exchange/user/',
+    // WebSocket 升级请求
+    '/exchange/ws',
   ];
   if (skipPaths.some(p => urlPath.includes(p))) {
-    console.log('[RateLimit] 跳过价格接口限制:', urlPath);
     return next();
   }
 
