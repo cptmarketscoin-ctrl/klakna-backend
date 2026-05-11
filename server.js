@@ -161,13 +161,61 @@ const apiLimiter = rateLimit({
 // 全局 express.json() 会导致代理转发的 POST 请求 body 为空（ECONNRESET/502）
 
 // ============================================================
+// 🚀 GitHub Webhook 自动部署接口（必须放在频率限制之前）
+// ============================================================
+const GITHUB_WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET || 'klakna_deploy_secret_2024';
+
+app.post('/api/deploy', express.json(), (req, res) => {
+  const sig = req.headers['x-hub-signature-256'] || '';
+  const body = JSON.stringify(req.body);
+
+  // 验证签名（可选，建议配置）
+  const crypto = require('crypto');
+  const hmac = crypto.createHmac('sha256', GITHUB_WEBHOOK_SECRET);
+  hmac.update(body);
+  const expectedSig = 'sha256=' + hmac.digest('hex');
+
+  // 如果配置了 Secret，则验证；否则允许无签名推送（仅用于测试）
+  if (process.env.GITHUB_WEBHOOK_SECRET && sig !== expectedSig) {
+    console.log('[Deploy] ❌ Webhook 签名验证失败');
+    return res.status(401).json({ code: 401, msg: 'Invalid signature' });
+  }
+
+  console.log('[Deploy] 🚀 收到 GitHub Push，开始部署...');
+  console.log('[Deploy] 仓库:', req.body?.repository?.full_name || 'unknown');
+  console.log('[Deploy] 分支:', req.body?.ref || 'unknown');
+
+  // 异步执行部署（不阻塞响应）
+  res.json({ code: 200, msg: 'Deployment started' });
+
+  // 执行部署脚本
+  const { exec } = require('child_process');
+  const deployScript = `
+    cd /home/ubuntu/klakna-backend &&
+    git pull origin master &&
+    npm install --production &&
+    pm2 restart all
+  `;
+
+  exec(deployScript, { timeout: 60000 }, (error, stdout, stderr) => {
+    if (error) {
+      console.error('[Deploy] ❌ 部署失败:', error.message);
+      console.error('[Deploy] stderr:', stderr);
+    } else {
+      console.log('[Deploy] ✅ 部署成功!');
+      console.log('[Deploy] stdout:', stdout);
+    }
+  });
+});
+
+// ============================================================
 // 🛡️ API 速率限制（防止滥用）
 // 应用到所有非 GET/OPTIONS 请求，但价格接口完全不限
 app.use((req, res, next) => {
   const urlPath = (req.originalUrl || req.url || '').split('?')[0];
 
-  // 跳过 GET、OPTIONS 和健康检查
-  if (req.method === 'GET' || req.method === 'OPTIONS' || urlPath === '/health') {
+  // 跳过 GET、OPTIONS、健康检查和部署接口
+  if (req.method === 'GET' || req.method === 'OPTIONS' || urlPath === '/health' || urlPath === '/api/deploy') {
     return next();
   }
 
