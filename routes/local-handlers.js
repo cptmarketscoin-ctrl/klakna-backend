@@ -17,6 +17,8 @@ const routes = {
     '/exchange/user/register': handleRegister,
     '/exchange/user/walletLogin': handleWalletLogin,
     '/exchange/user/walletRegister': handleWalletLogin,
+    '/exchange/getFile': handleGetFile,
+    '/exchange/stats': handleStats,
     '/exchange/user/getUserInfo': handleGetUserInfo,
     '/exchange/user/updateUserInfo': handleUpdateUserInfo,
     '/exchange/user/updatePassword': handleUpdatePassword,
@@ -211,13 +213,32 @@ const routes = {
     '/exchange/RockieMessage/addNotifyRead': () => ({ code: 200, data: null, msg: 'success' }),
     '/exchange/RockieMessage/delNotify': () => ({ code: 200, data: null, msg: 'success' }),
     '/exchange/RockieAiController/login': () => ({ code: 200, data: null, msg: 'success' }),
+    '/exchange/RockieAiController/transfer': () => ({ code: 200, data: null, msg: 'success' }),
     '/exchange/rockieFile/uploadFile': () => ({ code: 200, data: { url: '' }, msg: 'success' }),
 
     '/exchange/Transaction/currency': handleTransactionCurrency,
     '/exchange/Transaction/currency/positionDetail': handlePositionDetail,
+    '/exchange/Transaction/currency/contractRecords': handleContractRecords,
+    '/exchange/Transaction/new/stock': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
     '/exchange/Transaction/stock': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
     '/exchange/Transaction/forex': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
     '/exchange/Transaction/etf': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
+
+    // ========== 用户间转账 / 资金账户 ==========
+    '/exchange/transfer/user': handleTransferUser,
+    '/exchange/UserInfo': () => ({ code: 200, data: {}, msg: 'success' }),
+    '/exchange/Wallet': () => ({ code: 200, data: {}, msg: 'success' }),
+    '/exchange/wallet': () => ({ code: 200, data: {}, msg: 'success' }),
+    '/exchange/walletAccount': () => ({ code: 200, data: {}, msg: 'success' }),
+    '/exchange/mobileWalletHistory': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
+    '/exchange/userAgreement': () => ({ code: 200, data: '', msg: 'success' }),
+    '/exchange/ws/user/queryUserUnreadList': () => ({ code: 200, data: [], msg: 'success' }),
+
+    // ========== 大额交易 ==========
+    '/exchange/largeTransactions': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
+    '/exchange/largeTransactions/getList': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
+    '/exchange/largeTransactions/detail': () => ({ code: 200, data: {}, msg: 'success' }),
+    '/exchange/largeTransactions/record': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
 
     // ========== 平台配置 ==========
     '/exchange/hashMap/getIsDisplay': handleGetIsDisplay,
@@ -496,14 +517,23 @@ function handleFuturesBuy(path, body, user) {
   if (!symbol || !amount || !margin) return { code: 400, data: null, msg: 'Invalid params' };
   const usdt = queryOne("SELECT * FROM wallets WHERE user_id = ? AND coin_symbol = ?", [user.id, 'USDT']);
   if (!usdt || usdt.available < margin) return { code: 400, data: null, msg: 'Insufficient margin' };
+  // 开仓价：优先用请求中的 price，否则取实时行情缓存
+  let openPrice = price || 0;
+  if (openPrice === 0) {
+    const cache = global.__priceCache || {};
+    const s = (symbol || '').toUpperCase();
+    if (cache[s] && cache[s].price) {
+      openPrice = parseFloat(cache[s].price);
+    }
+  }
   const fee = margin * config.FEE_RATE_FUTURES;
   const orderNo = uuidv4().replace(/-/g, '').substring(0, 20).toUpperCase();
   const db = getDbSync();
   db.run("UPDATE wallets SET available = available - ? WHERE user_id = ? AND coin_symbol = ?", [margin, user.id, 'USDT']);
   db.run("INSERT INTO positions (user_id, symbol, side, leverage, open_price, amount, margin, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')",
-    [user.id, symbol, side || 'long', leverage || 1, price || 0, amount, margin, fee]);
+    [user.id, symbol, side || 'long', leverage || 1, openPrice, amount, margin, fee]);
   saveDb();
-  return { code: 200, data: { orderNo, symbol, side: side || 'long', margin, fee }, msg: 'success' };
+  return { code: 200, data: { orderNo, symbol, side: side || 'long', openPrice, margin, fee }, msg: 'success' };
 }
 
 function handleFuturesClose(path, body, user) {
@@ -511,13 +541,28 @@ function handleFuturesClose(path, body, user) {
   const { id } = body;
   const pos = queryOne("SELECT * FROM positions WHERE user_id = ? AND id = ? AND status = 'open'", [user.id, id]);
   if (!pos) return { code: 400, data: null, msg: 'Position not found' };
-  const pnl = pos.margin * ((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 0.04 + 0.01));
+
+  // 获取当前市场价
+  const cache = global.__priceCache || {};
+  let closePrice = pos.open_price; // 默认用开仓价（无盈亏）
+  if (cache[pos.symbol] && cache[pos.symbol].price) {
+    closePrice = parseFloat(cache[pos.symbol].price);
+  }
+  // 计算真实 PnL
+  const isLong = pos.side === 'long';
+  const priceDiff = isLong ? (closePrice - pos.open_price) : (pos.open_price - closePrice);
+  const pnl = priceDiff * pos.amount * (pos.leverage || 1) - (pos.fee || 0);
   const ret = pos.margin + pnl;
+
   const db = getDbSync();
-  db.run("UPDATE positions SET status = 'closed', closed_at = datetime('now'), pnl = ? WHERE id = ?", [pnl, id]);
-  db.run("UPDATE wallets SET available = available + ? WHERE user_id = ? AND coin_symbol = ?", [ret, user.id, 'USDT']);
+  db.run("UPDATE positions SET status = 'closed', closed_at = datetime('now'), close_price = ?, pnl = ? WHERE id = ?",
+    [closePrice, pnl, id]);
+  db.run("UPDATE wallets SET available = available + ? WHERE user_id = ? AND coin_symbol = ?", [Math.max(ret, 0), user.id, 'USDT']);
+  // 记录流水
+  db.run("INSERT INTO flow_records (user_id, type, coin_symbol, amount, balance, remark) VALUES (?, ?, ?, ?, ?, ?)",
+    [user.id, 'futures_close', 'USDT', pnl, 0, `Close ${pos.symbol} ${pos.side} PnL:${pnl.toFixed(2)}`]);
   saveDb();
-  return { code: 200, data: { positionId: id, pnl: pnl.toFixed(2), returnAmount: ret.toFixed(2) }, msg: 'success' };
+  return { code: 200, data: { positionId: id, openPrice: pos.open_price, closePrice: closePrice.toFixed(8), pnl: pnl.toFixed(2), returnAmount: Math.max(ret, 0).toFixed(2) }, msg: 'success' };
 }
 
 // ========== 订单 ==========
@@ -539,6 +584,58 @@ function handlePositionDetail(path, body, user) {
   if (!user) return { code: 200, data: [] };
   const orders = queryAll("SELECT * FROM orders WHERE user_id = ? AND order_type = 'spot' AND status = 'filled'", [user.id]);
   return { code: 200, data: orders.map(o => ({ symbol: o.symbol, side: o.side, amount: o.amount, price: o.price })), msg: 'success' };
+}
+
+function handleContractRecords(path, body, user) {
+  if (!user) return { code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } } };
+  const { page = 1, size = 10, symbol, status } = body;
+  let where = "WHERE user_id = ?", params = [user.id];
+  if (symbol) { where += " AND symbol = ?"; params.push(symbol); }
+  if (status) { where += " AND status = ?"; params.push(status); }
+  const records = queryAll(`SELECT * FROM positions ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...params, size, (page - 1) * size]);
+  const cnt = getDbSync().exec(`SELECT COUNT(*) FROM positions ${where}`, params);
+  const total = cnt[0]?.values[0]?.[0] || 0;
+  return { code: 200, data: { content: { records, total, size, current: page, pages: Math.ceil(total / size) } }, msg: 'success' };
+}
+
+// ========== 用户间转账 ==========
+
+function handleTransferUser(path, body, user) {
+  if (!user) return { code: 401, data: null, msg: 'Unauthorized' };
+  const { toUserId, coinSymbol, amount, transactionPsw } = body;
+  if (!toUserId || !coinSymbol || !amount || amount <= 0) return { code: 400, data: null, msg: 'Invalid params' };
+  // 验证资金密码
+  if (user.transaction_psw) {
+    const valid = bcrypt.compareSync(transactionPsw || '', user.transaction_psw);
+    if (!valid) return { code: 400, data: null, msg: 'Incorrect transaction password' };
+  }
+  // 查询目标用户
+  const targetUser = queryOne("SELECT id, username FROM users WHERE id = ?", [toUserId]);
+  if (!targetUser) return { code: 400, data: null, msg: 'Target user not found' };
+  if (targetUser.id === user.id) return { code: 400, data: null, msg: 'Cannot transfer to yourself' };
+  // 查询转出钱包
+  const fromWallet = queryOne("SELECT * FROM wallets WHERE user_id = ? AND coin_symbol = ?", [user.id, coinSymbol]);
+  if (!fromWallet || fromWallet.available < amount) return { code: 400, data: null, msg: 'Insufficient balance' };
+  // 查询或创建目标用户钱包
+  let toWallet = queryOne("SELECT * FROM wallets WHERE user_id = ? AND coin_symbol = ?", [targetUser.id, coinSymbol]);
+  const db = getDbSync();
+  if (!toWallet) {
+    db.run("INSERT INTO wallets (user_id, coin_symbol, coin_name, available, frozen, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [targetUser.id, coinSymbol, coinSymbol, 0, 0, '', 10]);
+    toWallet = queryOne("SELECT * FROM wallets WHERE user_id = ? AND coin_symbol = ?", [targetUser.id, coinSymbol]);
+  }
+  // 执行转账
+  const fee = amount * config.FEE_RATE;
+  db.run("UPDATE wallets SET available = available - ? WHERE user_id = ? AND coin_symbol = ?", [amount, user.id, coinSymbol]);
+  db.run("UPDATE wallets SET available = available + ? WHERE user_id = ? AND coin_symbol = ?", [amount - fee, targetUser.id, coinSymbol]);
+  // 记录流水
+  const remark = `Transfer to user ${targetUser.username || targetUser.id}`;
+  db.run("INSERT INTO flow_records (user_id, type, coin_symbol, amount, balance, remark) VALUES (?, ?, ?, ?, ?, ?)",
+    [user.id, 'transfer_out', coinSymbol, -amount, fromWallet.available - amount, remark]);
+  db.run("INSERT INTO flow_records (user_id, type, coin_symbol, amount, balance, remark) VALUES (?, ?, ?, ?, ?, ?)",
+    [targetUser.id, 'transfer_in', coinSymbol, amount - fee, (toWallet?.available || 0) + amount - fee, `Transfer from user ${user.username || user.id}`]);
+  saveDb();
+  return { code: 200, data: { toUserId: targetUser.id, coinSymbol, amount, fee: fee.toFixed(8) }, msg: 'success' };
 }
 
 // ========== 平台配置 ==========
@@ -819,6 +916,24 @@ function handleWithdrawList(path, body, user) {
   const cnt = getDbSync().exec(`SELECT COUNT(*) FROM withdraw_records WHERE user_id = ?`, [user.id]);
   const total = cnt[0]?.values[0]?.[0] || 0;
   return { code: 200, data: { content: { records, total, size, current: page, pages: Math.ceil(total / size) } }, msg: 'success' };
+}
+
+// Stats - 返回空数据避免 404
+function handleStats(path, body) {
+  return {
+    code: 200,
+    data: {
+      visitors: 0,
+      pageViews: 0,
+      uptime: process.uptime(),
+    },
+    msg: 'success'
+  };
+}
+
+// getFile - 返回空数据避免 404
+function handleGetFile(path, body) {
+  return { code: 200, data: { url: '', name: '' }, msg: 'success' };
 }
 
 module.exports = { match };

