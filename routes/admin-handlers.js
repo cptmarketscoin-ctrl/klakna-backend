@@ -748,7 +748,6 @@ const adminRoutes = {
     '/admin/finance/coin/list': handleAdminFinanceCoinList,
     // ========== 客服管理（GET）==========
     '/admin/cs/config': handleAdminCsConfig,
-    '/admin/cs/messages': handleAdminCsMessages,
   },
   'POST': {
     '/admin/login': handleAdminLogin,
@@ -933,6 +932,7 @@ const adminRoutes = {
     '/admin/cs/update': handleAdminCsUpdate,
     '/admin/cs/reply': handleAdminCsReply,
     '/admin/cs/delete': handleAdminCsDelete,
+    '/admin/cs/messages': handleAdminCsMessages,
   }
 };
 

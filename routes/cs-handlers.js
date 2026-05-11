@@ -75,8 +75,9 @@ function handleCsMessages(path, body, query, user) {
     return { code: 401, data: null, msg: 'Please login first' };
   }
 
-  const page = parseInt(query.page) || 1;
-  const size = parseInt(query.size) || 20;
+  // 同时支持 query (GET) 和 body (POST)
+  const page = parseInt(body.page || query.page) || 1;
+  const size = parseInt(body.size || query.size) || 20;
 
   try {
     const userId = user.id;

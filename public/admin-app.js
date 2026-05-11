@@ -1485,7 +1485,7 @@ async function pgUserManage(page=1) {
         <td>${statusBadge}</td>
         <td>${T(u.created_at)}</td>
         <td>
-          <button class="btn btn-sm btn-primary" onclick="showUserDetail(${u.id})">Detail</button>
+          <button class="btn btn-sm btn-primary" onclick="showUserDetailV2(${u.id})">Detail</button>
           <button class="btn btn-sm ${u.status==1?'btn-danger':'btn-accent'}" onclick="toggleUserStatus(${u.id},${u.status==1?0:1})">${u.status==1?'Disable':'Enable'}</button>
           <button class="btn btn-sm btn-danger" onclick="deleteUserConfirm(${u.id},'${A(u.username)}')">Delete</button>
         </td>
@@ -1514,8 +1514,7 @@ async function pgUserManage(page=1) {
   }
 }
 
-async function showUserDetail(id) {
-  const r=await api('/admin/user-manage/detail',{id});
+async function showUserDetailV2(id) {
   if(r.code!==200){alert('[ERROR] '+r.msg);return;}
   const u=r.data;
   const body=`

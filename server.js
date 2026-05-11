@@ -389,6 +389,10 @@ app.use(async (req, res, next) => {
     '/UserInfo', '/Wallet', // 不含 /exchange 前缀的匹配
     '/exchange/UserInfo', '/exchange/Wallet', // 含 /exchange 前缀的匹配
     '/exchange/userAgreement', '/exchange/walletAccount', // 含 /exchange 前缀的匹配
+    // ===== 价格 API =====
+    '/getPrice', '/exchange/getPrice',
+    // ===== 合约交易 API =====
+    '/rockieCoinFutures/', '/exchange/rockieCoinFutures/',
   ];
 
   // 检查路径是否需要本地处理

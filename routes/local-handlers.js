@@ -519,21 +519,28 @@ function handleFuturesBuy(path, body, user) {
   if (!usdt || usdt.available < margin) return { code: 400, data: null, msg: 'Insufficient margin' };
   // 开仓价：优先用请求中的 price，否则取实时行情缓存
   let openPrice = price || 0;
+  console.log('[DEBUG] handleFuturesBuy - symbol:', symbol, '| price param:', price, '| openPrice before cache:', openPrice);
   if (openPrice === 0) {
     const cache = global.__priceCache || {};
     const s = (symbol || '').toUpperCase();
+    console.log('[DEBUG] Checking cache for symbol:', s, '| cache keys:', Object.keys(cache).join(', '));
     if (cache[s] && cache[s].price) {
       openPrice = parseFloat(cache[s].price);
+      console.log('[DEBUG] openPrice from cache:', openPrice);
+    } else {
+      console.log('[DEBUG] Cache miss for', s, '| cache[s]:', cache[s]);
     }
   }
+  console.log('[DEBUG] Final openPrice:', openPrice);
   const fee = margin * config.FEE_RATE_FUTURES;
   const orderNo = uuidv4().replace(/-/g, '').substring(0, 20).toUpperCase();
   const db = getDbSync();
   db.run("UPDATE wallets SET available = available - ? WHERE user_id = ? AND coin_symbol = ?", [margin, user.id, 'USDT']);
-  db.run("INSERT INTO positions (user_id, symbol, side, leverage, open_price, amount, margin, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')",
-    [user.id, symbol, side || 'long', leverage || 1, openPrice, amount, margin, fee]);
+  const stmt = db.prepare("INSERT INTO positions (user_id, symbol, side, leverage, open_price, amount, margin, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')");
+  stmt.run([user.id, symbol, side || 'long', leverage || 1, openPrice, amount, margin, fee]);
+  const positionId = db.prepare("SELECT last_insert_rowid() as id").get().id;
   saveDb();
-  return { code: 200, data: { orderNo, symbol, side: side || 'long', openPrice, margin, fee }, msg: 'success' };
+  return { code: 200, data: { orderNo, positionId, symbol, side: side || 'long', openPrice, margin, fee }, msg: 'success' };
 }
 
 function handleFuturesClose(path, body, user) {
