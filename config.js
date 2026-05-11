@@ -44,10 +44,10 @@ module.exports = {
         data: null,
       },
     },
-    // 通用 API 限制
+    // 通用 API 限制（放宽：1000次/15分钟，价格接口完全不限）
     API: {
       windowMs: 15 * 60 * 1000, // 15 分钟
-      max: 100, // 最多 100 次请求
+      max: 1000, // 最多 1000 次请求（原100太少，前端获取行情很容易超限）
       message: {
         code: 429,
         msg: 'Too many requests, please try again later',

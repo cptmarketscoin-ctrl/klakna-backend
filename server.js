@@ -162,12 +162,29 @@ const apiLimiter = rateLimit({
 
 // ============================================================
 // 🛡️ API 速率限制（防止滥用）
-// 应用到所有非 GET/OPTIONS 请求
+// 应用到所有非 GET/OPTIONS 请求，但价格接口完全不限
 app.use((req, res, next) => {
+  const urlPath = (req.originalUrl || req.url || '').split('?')[0];
+
   // 跳过 GET、OPTIONS 和健康检查
-  if (req.method === 'GET' || req.method === 'OPTIONS' || (req.originalUrl || req.url || '').split('?')[0] === '/health') {
+  if (req.method === 'GET' || req.method === 'OPTIONS' || urlPath === '/health') {
     return next();
   }
+
+  // 🚀 价格/行情接口完全跳过频率限制（高频调用）
+  const skipPaths = [
+    '/exchange/rockieCoinFutures/getPrice',
+    '/exchange/rockieCoinFutures/getSymbols',
+    '/exchange/rockieCoinFutures/',
+    '/rockieCoinFutures/',
+    '/getPrice',
+    '/getSymbols',
+  ];
+  if (skipPaths.some(p => urlPath.includes(p))) {
+    console.log('[RateLimit] 跳过价格接口限制:', urlPath);
+    return next();
+  }
+
   // 应用 API 速率限制
   return apiLimiter(req, res, next);
 });
