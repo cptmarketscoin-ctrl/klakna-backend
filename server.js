@@ -385,15 +385,21 @@ app.use(async (req, res, next) => {
     '/transfer/', '/largeTransactions', '/mobileWalletHistory',
     '/userAgreement', '/walletAccount', '/ws/',
     '/RockieAiController/',
-    '/UserInfo', '/Wallet',
+    '/exchange/RockieAiController/', // 匹配 /exchange/RockieAiController/
+    '/UserInfo', '/Wallet', // 不含 /exchange 前缀的匹配
+    '/exchange/UserInfo', '/exchange/Wallet', // 含 /exchange 前缀的匹配
+    '/exchange/userAgreement', '/exchange/walletAccount', // 含 /exchange 前缀的匹配
   ];
 
   // 检查路径是否需要本地处理
-  const checkPath = apiPath.charAt(0).toUpperCase() + apiPath.slice(1); // 首字母大写版本
+  // 先去除 /exchange 前缀（如果存在），因为 localPrefixes 中的前缀不含 /exchange
+  const cleanPath = apiPath.startsWith('/exchange/') ? apiPath.slice(9) : apiPath;
+  const cleanCheckPath = cleanPath.charAt(0).toUpperCase() + cleanPath.slice(1);
+  
   const needsLocal = localPrefixes.some(prefix => {
     const pLower = prefix.toLowerCase();
-    return apiPath.startsWith(prefix) || apiPath.startsWith(pLower) ||
-           checkPath.startsWith(prefix) || checkPath.startsWith(pLower);
+    return cleanPath.startsWith(prefix) || cleanPath.startsWith(pLower) ||
+           cleanCheckPath.startsWith(prefix) || cleanCheckPath.startsWith(pLower);
   });
 
     console.log('[DEBUG] apiPath:', apiPath);  // 调试日志
