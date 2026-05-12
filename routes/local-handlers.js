@@ -160,14 +160,12 @@ const routes = {
       for (const [symbol, data] of Object.entries(cache)) {
         marketStats[symbol] = '$' + Number(data.market_cap || 0).toFixed(0);
       }
-      // 添加法币对
       marketStats['EUR'] = '$1,200,000,000,000';
       marketStats['GBP'] = '$3,000,000,000,000';
       marketStats['JPY'] = '$500,000,000,000';
-      return { code: 200, data: { marketStats }, msg: 'success' };
+      return { marketStats };
     },
     '/exchange/tradingView/getBtcEnd': (path, body, user) => {
-      // 返回 BTC 市场占比数据（1H/4H/24H）
       const timeframes = { '1H': {}, '4H': {}, '24H': {} };
       timeframes['1H']['BTC'] = '45.2%';
       timeframes['1H']['ETH'] = '18.7%';
@@ -178,7 +176,7 @@ const routes = {
       timeframes['24H']['BTC'] = '45.1%';
       timeframes['24H']['ETH'] = '18.9%';
       timeframes['24H']['Others'] = '36.0%';
-      return { code: 200, data: timeframes, msg: 'success' };
+      return { data: timeframes };
     },
 
     // ========== RockieNews 新闻接口 ==========
@@ -274,8 +272,8 @@ const routes = {
     '/exchange/RockieMessage/getTransactionList': () => ({ code: 200, data: [], msg: 'success' }),
     '/exchange/RockieMessage/getNotify': () => ({ code: 200, data: [], msg: 'success' }),
     '/exchange/RockieMessage/getDict': (path, body, user) => {
-      // 前端字典数据（splice(0,0,...n) 要求 n 是数组）
-      const dictData = [
+      // 前端 splice(0,0,...n) 需要 n 是数组，不能包在 {code, data} 里
+      return [
         { value: 'en', label: 'English' },
         { value: 'zh', label: '中文' },
         { value: 'ko', label: '한국어' },
@@ -284,7 +282,6 @@ const routes = {
         { value: 'th', label: 'ภาษาไทย' },
         { value: 'tr', label: 'Türkçe' },
       ];
-      return { code: 200, data: dictData, msg: 'success' };
     },
     '/exchange/RockieMessage/getPlayIcon': () => ({ code: 200, data: null, msg: 'success' }),
     '/exchange/RockieMessage/getPlayIconList': () => ({ code: 200, data: [], msg: 'success' }),
