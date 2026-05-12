@@ -20,6 +20,8 @@ const routes = {
     '/exchange/getFile': handleGetFile,
     '/exchange/stats': handleStats,
     '/exchange/user/getUserInfo': handleGetUserInfo,
+    '/exchange/user/getInfo': handleGetUserInfo,  // 添加 getInfo 端点
+    '/user/getInfo': handleGetUserInfo,  // 不含 /exchange 前缀的匹配
     '/exchange/user/updateUserInfo': handleUpdateUserInfo,
     '/exchange/user/updatePassword': handleUpdatePassword,
     '/exchange/user/forgetPassword': () => ({ code: 200, data: null, msg: 'success' }),
@@ -253,6 +255,8 @@ const routes = {
     '/exchange/rockieFile/getFile': handleRockieFileGetFile,
     '/exchange/hashMap/getIsDisplay': handleGetIsDisplay,
     '/exchange/hashMap/getValue': handleGetValue,
+    '/api/config': () => ({ code: 200, data: { siteName: 'Klakna', isDisplay: true }, msg: 'success' }),
+    '/config': () => ({ code: 200, data: { siteName: 'Klakna', isDisplay: true, fileId: '9007393' }, msg: 'success' }),
   }
 };
 
@@ -357,7 +361,11 @@ function handleUserInfo(path, body, user) {
 }
 
 function handleGetUserInfo(path, body, user) {
-  if (!user) return { code: 200, data: null, msg: 'Not logged in' };
+  if (!user) {
+    // 未登录：返回空的会话信息，让前端正确处理未登录状态
+    // 注意：前端期望 userId (大写I)，不是 userid
+    return { code: 200, data: { userId: null, sessionId: null }, msg: 'Not logged in' };
+  }
   const u = queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
   if (!u) return { code: 404, data: null, msg: 'Not found' };
   const wallets = queryAll("SELECT * FROM wallets WHERE user_id = ? ORDER BY sort_order", [u.id]);

@@ -64,6 +64,11 @@ module.exports = {
     'https://localhost:8443',
     'http://127.0.0.1:8080',
     'https://127.0.0.1:8443',
-    // 生产域名 - 根据需要添加
+    // 生产域名
+    'https://api.cptnexus.sbs',
+    'https://www.klakna.sbs',
+    'https://klakna.sbs',
+    // 前端静态托管（GitHub Pages 等）
+    'https://cptmarketscoin-ctrl.github.io',
   ],
 };

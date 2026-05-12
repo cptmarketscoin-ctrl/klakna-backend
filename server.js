@@ -76,6 +76,7 @@ const CORS_WHITELIST = [
   'https://localhost:8443',
   'http://127.0.0.1:8080',
   'https://127.0.0.1:8443',
+  'http://localhost:8888',  // 添加测试服务器
 ];
 
 function isOriginAllowed(origin) {
@@ -88,18 +89,19 @@ function isOriginAllowed(origin) {
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowed = isOriginAllowed(origin);
-
-  if (allowed) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Vary', 'Origin');
+  
+  // 🔧 临时：始终设置 CORS 头（测试用）
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, token, lang, language, timezone, TimeZone, port, deviceId');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400');
+  res.setHeader('Access-Control-Max-age', '86400');
+  res.setHeader('Vary', 'Origin');
 
+  console.log('[CORS]', req.method, req.url, '| Origin:', origin, '| Allowed:', allowed);
+  
   if (req.method === 'OPTIONS') {
-    return allowed ? res.sendStatus(204) : res.status(403).json({ code: 403, msg: 'CORS origin not allowed', data: null });
+    return res.sendStatus(204);
   }
   next();
 });
@@ -469,6 +471,7 @@ app.use(async (req, res, next) => {
     '/exchange/userAgreement', '/exchange/walletAccount', // 含 /exchange 前缀的匹配
     // ===== 价格 API =====
     '/getPrice', '/exchange/getPrice',
+    "/config",
     // ===== 合约交易 API =====
     '/rockieCoinFutures/', '/exchange/rockieCoinFutures/',
   ];
