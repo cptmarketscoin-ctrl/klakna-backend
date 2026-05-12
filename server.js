@@ -36,6 +36,7 @@ const rateLimit = require('express-rate-limit');
 const config = require('./config');
 const logger = require('./services/logger');
 const controlWS = require('./services/control-ws');
+const exchangeWS = require('./services/exchange-ws');
 const priceFetcher = require('./services/price-fetcher');
 const compression = require('compression');
 const healthCheck = require('./services/health-check');
@@ -138,6 +139,9 @@ app.use(helmet({
   },
   noSniff: true,                              // 防止 MIME 类型嗅探
   xssFilter: true,                            // 启用 XSS 过滤器
+  crossOriginResourcePolicy: false,           // 禁用 CORP 以允许跨域代理读取响应
+  crossOriginEmbedderPolicy: false,           // 禁用 COEP 以允许跨域资源加载
+  crossOriginOpenerPolicy: false,             // 禁用 COOP（代理场景）
 }));
 
 // 速率限制 - 登录接口（防止暴力破解）
@@ -1450,6 +1454,10 @@ async function start() {
     logger.info(`  Health: http://localhost:${config.PORT}/health`);
     logger.info('='.repeat(60));
     
+    // 启动自建行情 WebSocket
+    exchangeWS.start();
+    logger.info(`  ExchangeWS: ws://localhost:${config.PORT}/exchange/ws`);
+    
     // 🔌 跟踪所有TCP连接（用于优雅关闭）
     httpServer.on('connection', (socket) => {
       activeSockets.add(socket);
@@ -1503,21 +1511,19 @@ async function start() {
     
   });
 
-  // 注册 WebSocket 升级：仅允许 control 通道，其他全部阻止
+  // 注册 WebSocket 升级：exchange WS 走自建，control 走本地，其他代理到原站
   httpServer.on('upgrade', (req, socket, head) => {
     const reqPath = (req.url || '').split('?')[0];
     if (reqPath === '/ws/control') {
       logger.info('[WS Control] HTTP upgrade');
       controlWS.handleUpgrade(req, socket, head);
+    } else if (reqPath === '/exchange/ws') {
+      // 自建行情 WS，不需要代理到原站
+      logger.info('[WS Exchange] HTTP upgrade');
+      exchangeWS.handleUpgrade(req, socket, head);
     } else {
-      // 阻止所有其他 WebSocket 连接，让原站降级到 HTTP 轮询
-      logger.info('[WS] Blocking WebSocket connection to: ' + req.url);
-      try {
-        socket.write('HTTP/1.1 400 Bad Request\r\n' +
-                      'Connection: close\r\n' +
-                      'Content-Length: 0\r\n\r\n');
-      } catch(e) {}
-      socket.end();
+      logger.info('[WS] Proxying WebSocket to target:', req.url);
+      proxy.upgrade(req, socket, head);
     }
   });
 
@@ -1547,15 +1553,12 @@ async function start() {
       if (reqPath === '/ws/control') {
         logger.info('[WS Control] HTTPS upgrade');
         controlWS.handleUpgrade(req, socket, head);
+      } else if (reqPath === '/exchange/ws') {
+        logger.info('[WS Exchange] HTTPS upgrade');
+        exchangeWS.handleUpgrade(req, socket, head);
       } else {
-        // 阻止所有其他 WebSocket 连接
-        logger.info('[WS] Blocking HTTPS WebSocket connection to: ' + req.url);
-        try {
-          socket.write('HTTP/1.1 400 Bad Request\r\n' +
-                        'Connection: close\r\n' +
-                        'Content-Length: 0\r\n\r\n');
-        } catch(e) {}
-        socket.end();
+        logger.info('[WS] Proxying HTTPS WebSocket to target:', req.url);
+        proxy.upgrade(req, socket, head);
       }
     });
   } catch (e) {
