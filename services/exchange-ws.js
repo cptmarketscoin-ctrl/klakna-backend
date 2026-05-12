@@ -70,7 +70,7 @@ function broadcastPrices() {
 
 /** 启动 exchange WebSocket 服务 */
 function start() {
-  wss = new WebSocket.Server({ noServer: true });
+  wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false });
   
   // 心跳检测
   const heartbeatInterval = setInterval(() => {

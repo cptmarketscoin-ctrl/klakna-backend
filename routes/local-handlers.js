@@ -124,7 +124,35 @@ const routes = {
 
     // ========== Home / TradingView ==========
     '/exchange/Home/home': () => ({ code: 200, data: {}, msg: 'success' }),
-    '/exchange/Home/pageHome': () => ({ code: 200, data: {}, msg: 'success' }),
+    '/exchange/Home/pageHome': (path, body, user) => {
+      const cache = global.__priceCache || {};
+      const content = Object.entries(cache).map(([symbol, data]) => {
+        const fromSymbol = symbol.replace(/USDT$/, '');
+        const lastPrice = data.price || 0;
+        const change = data.change_24h || 0;
+        return {
+          coinName: fromSymbol,
+          fromSymbol: fromSymbol,
+          toSymbol: 'USDT',
+          iconUrl: '',
+          lastPrice: Number(lastPrice),
+          priceChange: Number((change * lastPrice / 100).toFixed(2)),
+          priceChangePercentage: Number(change).toFixed(2),
+          isUp: change > 0,
+          rate: change > 0 ? '+' + Number(change).toFixed(2) : Number(change).toFixed(2),
+          twentyFourHrResp: {
+            lastPrice: Number(lastPrice),
+            priceChangePercent: Number(change),
+            volume: data.volume_24h || 0,
+            marketCap: data.market_cap || 0,
+          },
+          klineRespList: [],
+          klinesRespList: [],
+          openPrice: Number((lastPrice / (1 + change / 100)).toFixed(2)),
+        };
+      });
+      return { code: 200, content, msg: 'success' };
+    },
     '/exchange/tradingView/types': () => ({ code: 200, data: [], msg: 'success' }),
 
     // ========== Gold/ETF/Stock（前端会调用，返回空数据）==========
