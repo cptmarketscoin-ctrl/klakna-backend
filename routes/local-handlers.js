@@ -154,6 +154,32 @@ const routes = {
       return { code: 200, content, msg: 'success' };
     },
     '/exchange/tradingView/types': () => ({ code: 200, data: [], msg: 'success' }),
+    '/exchange/tradingView/getBtcTotal': (path, body, user) => {
+      const cache = global.__priceCache || {};
+      const marketStats = {};
+      for (const [symbol, data] of Object.entries(cache)) {
+        marketStats[symbol] = '$' + Number(data.market_cap || 0).toFixed(0);
+      }
+      // 添加法币对
+      marketStats['EUR'] = '$1,200,000,000,000';
+      marketStats['GBP'] = '$3,000,000,000,000';
+      marketStats['JPY'] = '$500,000,000,000';
+      return { code: 200, data: { marketStats }, msg: 'success' };
+    },
+    '/exchange/tradingView/getBtcEnd': (path, body, user) => {
+      // 返回 BTC 市场占比数据（1H/4H/24H）
+      const timeframes = { '1H': {}, '4H': {}, '24H': {} };
+      timeframes['1H']['BTC'] = '45.2%';
+      timeframes['1H']['ETH'] = '18.7%';
+      timeframes['1H']['Others'] = '36.1%';
+      timeframes['4H']['BTC'] = '44.8%';
+      timeframes['4H']['ETH'] = '19.1%';
+      timeframes['4H']['Others'] = '36.1%';
+      timeframes['24H']['BTC'] = '45.1%';
+      timeframes['24H']['ETH'] = '18.9%';
+      timeframes['24H']['Others'] = '36.0%';
+      return { code: 200, data: timeframes, msg: 'success' };
+    },
 
     // ========== RockieNews 新闻接口 ==========
     '/exchange/RockieNews/getStockList': (path, body, user) => {
