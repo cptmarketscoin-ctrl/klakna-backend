@@ -456,7 +456,7 @@ app.use(async (req, res, next) => {
     '/rockieCoinOptions/', '/Transaction/', '/rockieWalletWithdraw/',
     '/share/', '/hashMap/', '/productGold/', '/nftProduct/',
     '/telegram/', '/newStockCoinTrade/',
-    '/RockieMessage/', '/rockieFile/', '/rockieAi/',
+    '/RockieMessage/', '/rockieFile/', '/rockieAi/', '/RockieNews/',
     '/Home/', '/goldForeign/',
     '/RockieGoldETFController/', '/RockieGoldStockController/',
     '/RockieGoldNewStockController/', '/RockieGoldIndiceController/',

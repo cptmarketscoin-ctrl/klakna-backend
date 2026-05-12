@@ -155,6 +155,20 @@ const routes = {
     },
     '/exchange/tradingView/types': () => ({ code: 200, data: [], msg: 'success' }),
 
+    // ========== RockieNews 新闻接口 ==========
+    '/exchange/RockieNews/getStockList': (path, body, user) => {
+      const cache = global.__priceCache || {};
+      const content = Object.entries(cache).slice(0, 20).map(([symbol, data]) => ({
+        coinName: symbol.replace(/USDT$/, ''),
+        toSymbol: 'USDT',
+        lastPrice: data.price || 0,
+        change24h: (data.change_24h || 0).toFixed(2),
+        volume: data.volume_24h || 0,
+        marketCap: data.market_cap || 0,
+      }));
+      return { code: 200, content, msg: 'success' };
+    },
+
     // ========== Gold/ETF/Stock（前端会调用，返回空数据）==========
     '/exchange/RockieGoldETFController/list': () => ({ code: 200, data: [], msg: 'success' }),
     '/exchange/RockieGoldETFController/Tickerlist': () => ({ code: 200, data: [], msg: 'success' }),
@@ -233,7 +247,19 @@ const routes = {
     '/exchange/RockieMessage/getServeMy': () => [],
     '/exchange/RockieMessage/getTransactionList': () => ({ code: 200, data: [], msg: 'success' }),
     '/exchange/RockieMessage/getNotify': () => ({ code: 200, data: [], msg: 'success' }),
-    '/exchange/RockieMessage/getDict': () => ({ code: 200, data: {}, msg: 'success' }),
+    '/exchange/RockieMessage/getDict': (path, body, user) => {
+      // 前端字典数据（splice(0,0,...n) 要求 n 是数组）
+      const dictData = [
+        { value: 'en', label: 'English' },
+        { value: 'zh', label: '中文' },
+        { value: 'ko', label: '한국어' },
+        { value: 'ja', label: '日本語' },
+        { value: 'vi', label: 'Tiếng Việt' },
+        { value: 'th', label: 'ภาษาไทย' },
+        { value: 'tr', label: 'Türkçe' },
+      ];
+      return { code: 200, data: dictData, msg: 'success' };
+    },
     '/exchange/RockieMessage/getPlayIcon': () => ({ code: 200, data: null, msg: 'success' }),
     '/exchange/RockieMessage/getPlayIconList': () => ({ code: 200, data: [], msg: 'success' }),
     '/exchange/RockieMessage/getServe': () => ({ code: 200, data: null, msg: 'success' }),
