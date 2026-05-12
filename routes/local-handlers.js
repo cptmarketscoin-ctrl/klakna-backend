@@ -283,9 +283,9 @@ const routes = {
         { value: 'tr', label: 'Türkçe' },
       ];
     },
-    '/exchange/RockieMessage/getPlayIcon': () => ({ code: 200, data: null, msg: 'success' }),
+    '/exchange/RockieMessage/getPlayIcon': () => ({ code: 200, data: [], msg: 'success' }),
     '/exchange/RockieMessage/getPlayIconList': () => ({ code: 200, data: [], msg: 'success' }),
-    '/exchange/RockieMessage/getServe': () => ({ code: 200, data: null, msg: 'success' }),
+    '/exchange/RockieMessage/getServe': () => ({ code: 200, data: [], msg: 'success' }),
     '/exchange/RockieMessage/getNotifyNumber': () => ({ code: 200, data: 0, msg: 'success' }),
     '/exchange/RockieMessage/getPopNotify': () => ({ code: 200, data: null, msg: 'success' }),
     '/exchange/RockieMessage/addNotify': () => ({ code: 200, data: null, msg: 'success' }),
@@ -332,8 +332,8 @@ const routes = {
     '/exchange/rockieFile/getFile': handleRockieFileGetFile,
     '/exchange/hashMap/getIsDisplay': handleGetIsDisplay,
     '/exchange/hashMap/getValue': handleGetValue,
-    '/api/config': () => ({ code: 200, data: { siteName: 'Klakna', isDisplay: true }, msg: 'success' }),
-    '/config': () => ({ code: 200, data: { siteName: 'Klakna', isDisplay: true, fileId: '9007393' }, msg: 'success' }),
+    '/api/config': () => ({ code: 200, data: { siteName: 'CPT', isDisplay: true }, msg: 'success' }),
+    '/config': () => ({ code: 200, data: { siteName: 'CPT', isDisplay: true, fileId: '9007393' }, msg: 'success' }),
   }
 };
 
@@ -883,8 +883,8 @@ function handleRockieMessageGetValue(path, body) {
       fileId: '9007393',
       url: '',
       msg: 'success',
-      name: 'Klakna',
-      address: 'Klakna Exchange',
+      name: 'CPT',
+      address: 'CPT Exchange',
       phone: '',
       advertising: '9007393',
       email: 'kiarlavip@gmail.com',

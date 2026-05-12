@@ -503,6 +503,43 @@ function createTables(db) {
     db.run(`INSERT INTO customer_service (name, welcome_message) VALUES ('Customer Service', 'Hello, how can I help you?')`);
   } catch(e) {}
 
+  // ========== 钱包配置表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS wallet_config (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      coin_type TEXT NOT NULL,
+      wallet_name TEXT NOT NULL,
+      wallet_address TEXT NOT NULL,
+      wallet_type TEXT NOT NULL DEFAULT 'central',
+      private_key_encrypted TEXT DEFAULT '',
+      is_active INTEGER DEFAULT 1,
+      remark TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // 创建唯一索引，防止同一币种同一类型重复配置
+  try { db.run("CREATE UNIQUE INDEX idx_wallet_config_type ON wallet_config(coin_type, wallet_type)"); } catch(e) {}
+
+  // ========== 归集记录表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS collection_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      coin_type TEXT NOT NULL,
+      from_address TEXT NOT NULL,
+      to_address TEXT NOT NULL,
+      amount REAL DEFAULT 0,
+      tx_hash TEXT DEFAULT '',
+      gas_fee REAL DEFAULT 0,
+      status TEXT DEFAULT 'pending',
+      error_msg TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      completed_at TEXT DEFAULT ''
+    )
+  `);
+
   // ========== 客服消息表 ==========
   db.run(`
     CREATE TABLE IF NOT EXISTS cs_messages (
@@ -514,6 +551,20 @@ function createTables(db) {
       status TEXT DEFAULT 'pending',
       created_at TEXT DEFAULT (datetime('now')),
       replied_at TEXT DEFAULT ''
+    )
+  `);
+
+  // ========== 配置管理表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS config_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT,
+      value_type TEXT DEFAULT 'text',
+      label TEXT,
+      updated_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(category, key)
     )
   `);
 

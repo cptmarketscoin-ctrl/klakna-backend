@@ -299,6 +299,8 @@ try {
   const { run } = require('./db/queries');
   run('CREATE TABLE IF NOT EXISTS market_control (id INTEGER PRIMARY KEY AUTOINCREMENT, symbol TEXT NOT NULL, max_price REAL DEFAULT 0, min_price REAL DEFAULT 0, action TEXT DEFAULT "block", enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
   run('CREATE TABLE IF NOT EXISTS contract_risk (id INTEGER PRIMARY KEY AUTOINCREMENT, symbol TEXT NOT NULL, max_leverage INTEGER DEFAULT 10, max_position REAL DEFAULT 0, risk_level TEXT DEFAULT "medium", enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+  // 配置管理数据表
+  run('CREATE TABLE IF NOT EXISTS config_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, key TEXT NOT NULL, value TEXT, value_type TEXT DEFAULT "text", label TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(category, key))');
   console.log('[RiskControl] Tables initialized');
 } catch(e) {
   console.log('[RiskControl] Tables may already exist');

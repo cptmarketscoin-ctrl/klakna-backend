@@ -38,7 +38,7 @@ const COINGECKO_MAP = {
   'optimism':      { symbol: 'OPUSDT', name: 'Optimism' },
   'near':          { symbol: 'NEARUSDT', name: 'NEAR Protocol' },
   'sui':           { symbol: 'SUIUSDT', name: 'Sui' },
-  'okb':           { symbol: 'OKBUSDT', name: 'OKB' },
+  // 'okb': OKB 在 Binance 上无 USDT 交易对，从 CoinGecko 获取时保留
   'dai':           { symbol: 'DAIUSDT', name: 'Dai' },
   'dogecoin':      { symbol: 'DOGEUSDT', name: 'Dogecoin' },
   'filecoin':      { symbol: 'FILUSDT', name: 'Filecoin' },
@@ -196,9 +196,17 @@ async function fetchPrices() {
     return;
   }
   
-  // 检查熔断器状态
+  // 检查熔断器状态 — OPEN 时仍尝试 Binance 备份，确保价格持续更新
   if (!shouldAttemptRequest()) {
-    console.warn('[PriceFetcher] Circuit breaker is OPEN, skipping request');
+    console.warn('[PriceFetcher] Circuit breaker is OPEN, trying Binance backup only...');
+    const binanceOk = await fetchPricesFromBinance();
+    if (binanceOk) {
+      recordSuccess();
+      console.log('[PriceFetcher] ✅ Binance backup succeeded during OPEN circuit');
+    } else {
+      console.warn('[PriceFetcher] ❌ Binance backup also failed during OPEN circuit');
+    }
+    isFetching = false;
     return;
   }
   

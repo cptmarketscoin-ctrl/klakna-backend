@@ -800,8 +800,29 @@ function deleteCsMessage(id) {
   run('DELETE FROM cs_messages WHERE id = ?', [id]);
 }
 
+// ========== 配置管理 ==========
+function getConfigByCategory(category) {
+  return queryAll('SELECT * FROM config_settings WHERE category = ? ORDER BY id', [category]);
+}
+function upsertConfig(category, key, value, label, valueType) {
+  const existing = queryOne('SELECT id FROM config_settings WHERE category = ? AND key = ?', [category, key]);
+  if (existing) {
+    run("UPDATE config_settings SET value = ?, label = ?, value_type = ?, updated_at = datetime('now') WHERE category = ? AND key = ?", [value, label || key, valueType || 'text', category, key]);
+    return existing.id;
+  } else {
+    run('INSERT INTO config_settings (category, key, value, label, value_type) VALUES (?, ?, ?, ?, ?)', [category, key, value, label || key, valueType || 'text']);
+    const row = queryOne('SELECT last_insert_rowid() as id');
+    return row ? row.id : 0;
+  }
+}
+function deleteConfig(id) {
+  run('DELETE FROM config_settings WHERE id = ?', [id]);
+}
+
 // 导出新增函数
 module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDirty,
+  // 配置管理
+  getConfigByCategory, upsertConfig, deleteConfig,
   getFrontendControls, setFrontendControl, deleteFrontendControl, toggleFrontendControl,
   getUserRestrictions, getAllUserRestrictions, setUserRestriction, deleteUserRestriction, batchSetRestrictions,
   getMarketOverrides, setMarketOverride, deleteMarketOverride, toggleMarketOverride,
