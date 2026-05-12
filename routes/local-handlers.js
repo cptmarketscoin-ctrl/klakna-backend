@@ -782,7 +782,7 @@ function handleCoinList(path, body) {
       low: '',
     };
   });
-  return { code: 200, data: coins, msg: 'success' };
+  return { code: 200, content: coins, msg: 'success' };
 }
 
 function handleGetPrice(path, body) {
