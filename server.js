@@ -428,6 +428,20 @@ app.use(async (req, res, next) => {
     return handleAdminAPI(req, res, reqPath);
   }
 
+  // ========== rockieFile/getFile 静态文件服务 ==========
+  if (reqPath.startsWith('/exchange/rockieFile/getFile')) {
+    const urlObj = new URL(req.url, 'http://localhost');
+    const fileId = urlObj.searchParams.get('fileId') || '';
+    // 重定向到 GitHub Pages 上的实际文件
+    if (fileId && !fileId.includes('undefined')) {
+      res.writeHead(302, { Location: fileId });
+      return res.end();
+    }
+    // fileId 为空或 undefined，返回透明图片
+    res.writeHead(302, { Location: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>' });
+    return res.end();
+  }
+
   // ========== 本地用户 API ==========
   if (reqPath.startsWith('/api/cs/')) {
     const exchangePath = '/exchange' + reqPath.slice(4);
