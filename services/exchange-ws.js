@@ -16,6 +16,9 @@
 const WebSocket = require('ws');
 const logger = require('./logger');
 
+// 价格格式化: 按金额分档统一小数位
+const fmtPrice = (p) => p >= 1000 ? p.toFixed(2) : p >= 1 ? p.toFixed(3) : p >= 0.01 ? p.toFixed(4) : p.toFixed(6);
+
 let wss = null;
 let intervalId = null;
 const PUSH_INTERVAL = 3000; // 每3秒推送一次
@@ -33,11 +36,11 @@ function buildMarketMessage(symbol, priceData) {
     symbol: symbol,
     optionMakerResponse: {
       rate: rate,          // 前端用 rate >= 0 判断涨跌
-      lastPrice: price,
-      high: priceData.high_24h || price * 1.02,
-      low: priceData.low_24h || price * 0.98,
+      lastPrice: fmtPrice(price),
+      high: fmtPrice(priceData.high_24h || price * 1.02),
+      low: fmtPrice(priceData.low_24h || price * 0.98),
       volume: priceData.volume_24h || 0,
-      priceChange: change24h * price / 100,
+      priceChange: Number((change24h * price / 100).toFixed(2)),
       priceChangePercent: change24h,
     }
   };
