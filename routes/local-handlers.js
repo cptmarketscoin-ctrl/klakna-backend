@@ -9,6 +9,9 @@ const { signToken } = require('../middleware/auth');
 const config = require('../config');
 const getIsDisplayConfig = require('../data/get-is-display');
 
+// 价格格式化: 按金额分档统一小数位（返回字符串保留尾零）
+const fmtPrice = (p) => p >= 1000 ? p.toFixed(2) : p >= 1 ? p.toFixed(3) : p >= 0.01 ? p.toFixed(4) : p.toFixed(6);
+
 // 路由匹配表
 const routes = {
   'POST': {
@@ -144,25 +147,26 @@ const routes = {
           const c = l + Math.random() * (h - l);
           klines.push({ time: Date.now() - (24 - i) * 3600000, open: Number(o.toFixed(2)), high: Number(h.toFixed(2)), low: Number(l.toFixed(2)), close: Number(c.toFixed(2)), volume: Math.round(Math.random() * (data.volume_24h || 1e8) / 24) });
         }
+        const changeVal = Number((change * lastPrice / 100).toFixed(4));
         return {
           coinName: fromSymbol,
           fromSymbol: fromSymbol,
           toSymbol: 'USDT',
           iconUrl: '/ETH/static/img/' + fromSymbol + '.png',
-          lastPrice: Number(lastPrice),
-          priceChange: Number((change * lastPrice / 100).toFixed(2)),
+          lastPrice: fmtPrice(lastPrice),
+          priceChange: Number(changeVal.toFixed(4)),
           priceChangePercentage: changePercent,
           isUp: change > 0,
           rate: change > 0 ? '+' + changePercent : changePercent,
           twentyFourHrResp: {
-            lastPrice: Number(lastPrice),
+            lastPrice: fmtPrice(lastPrice),
             priceChangePercent: changePercent,
             volume: data.volume_24h || 0,
             marketCap: data.market_cap || 0,
           },
           klineRespList: klines,
           klinesRespList: klines,
-          openPrice: lastPrice ? Number((lastPrice / (1 + change / 100)).toFixed(2)) : 0,
+          openPrice: fmtPrice(lastPrice ? (lastPrice / (1 + change / 100)) : 0),
         };
       });
       return { code: 200, content, msg: 'success' };
@@ -199,7 +203,7 @@ const routes = {
       const content = Object.entries(cache).slice(0, 20).map(([symbol, data]) => ({
         coinName: symbol.replace(/USDT$/, ''),
         toSymbol: 'USDT',
-        lastPrice: data.price || 0,
+        lastPrice: fmtPrice(data.price || 0),
         change24h: (data.change_24h || 0).toFixed(2),
         volume: data.volume_24h || 0,
         marketCap: data.market_cap || 0,
