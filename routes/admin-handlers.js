@@ -56,6 +56,8 @@ const { queryOne, queryAll, run, getDbSync, saveDb,
   getArticleCategories, getArticleCategoryById, createArticleCategory, updateArticleCategory, deleteArticleCategory, toggleArticleCategory,
   // ========== 文章管理 ==========
   getArticles, getArticleById, createArticle, updateArticle, deleteArticle, toggleArticle,
+  // ========== 代理管理 ==========
+  getAgents, getAgentById, createAgent, updateAgent, deleteAgent, toggleAgentStatus,
 } = require('../db/queries');
 const { signToken } = require('../middleware/auth');
 const config = require('../config');
@@ -968,6 +970,12 @@ const adminRoutes = {
     '/admin/article/update': handleAdminArticleUpdate,
     '/admin/article/delete': handleAdminArticleDelete,
     '/admin/article/toggle': handleAdminArticleToggle,
+    // ========== 代理管理 ==========
+    '/admin/agent/list': handleAdminAgentList,
+    '/admin/agent/detail': handleAdminAgentDetail,
+    '/admin/agent/update': handleAdminAgentUpdate,
+    '/admin/agent/delete': handleAdminAgentDelete,
+    '/admin/agent/toggle': handleAdminAgentToggle,
   }
 };
 
@@ -1907,6 +1915,70 @@ async function handleAdminArticleToggle(path, body) {
   try {
     toggleArticle(id, status);
     return { code: 200, data: null, msg: 'Article status updated' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+// ================================================================
+// 代理管理 API
+// ================================================================
+
+async function handleAdminAgentList(path, body) {
+  const { page = 1, size = 20, keyword, level, status } = body;
+  try {
+    const result = getAgents(page, size, keyword, level, status);
+    return { code: 200, data: result, msg: 'success' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminAgentDetail(path, body) {
+  const { id } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    const agent = getAgentById(id);
+    if (!agent) return { code: 404, data: null, msg: 'Agent not found' };
+    return { code: 200, data: agent, msg: 'success' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminAgentUpdate(path, body) {
+  const { id, user_id, username, agent_level, agent_code, commission_rate, total_referrals, total_commission, status, remark } = body;
+  if (!username && !user_id) return { code: 400, data: null, msg: 'username or user_id required' };
+  try {
+    if (id) {
+      updateAgent(id, { user_id, username, agent_level, agent_code, commission_rate, total_referrals, total_commission, status, remark });
+      return { code: 200, data: { id }, msg: 'Agent updated' };
+    } else {
+      const newId = createAgent({ user_id, username, agent_level, agent_code, commission_rate, status, remark });
+      return { code: 200, data: { id: newId }, msg: 'Agent created' };
+    }
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminAgentDelete(path, body) {
+  const { id } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    deleteAgent(id);
+    return { code: 200, data: null, msg: 'Agent deleted' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminAgentToggle(path, body) {
+  const { id, status } = body;
+  if (!id || !status) return { code: 400, data: null, msg: 'id and status required' };
+  try {
+    toggleAgentStatus(id, status);
+    return { code: 200, data: null, msg: 'Agent status updated' };
   } catch(e) {
     return { code: 500, data: null, msg: e.message };
   }

@@ -999,6 +999,54 @@ function toggleArticle(id, status) {
   run('UPDATE articles SET status = ?, updated_at = datetime(\'now\') WHERE id = ?', [status, id]);
 }
 
+// ========== 代理管理 ==========
+function getAgents(page = 1, size = 20, keyword, level, status) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (a.username LIKE ? OR a.agent_code LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (level) { where += ' AND a.agent_level = ?'; params.push(level); }
+  if (status) { where += ' AND a.status = ?'; params.push(status); }
+  const list = queryAll('SELECT a.*, u.email, u.phone FROM agents a LEFT JOIN users u ON a.user_id = u.id ' + where + ' ORDER BY a.id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM agents a ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+function getAgentById(id) {
+  return queryOne('SELECT a.*, u.email, u.phone FROM agents a LEFT JOIN users u ON a.user_id = u.id WHERE a.id = ?', [id]);
+}
+
+function createAgent(data) {
+  const { user_id, username, agent_level, agent_code, commission_rate, status, remark } = data;
+  run('INSERT INTO agents (user_id, username, agent_level, agent_code, commission_rate, status, remark) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [user_id || null, username || '', agent_level || 'normal', agent_code || '', commission_rate || 0, status || 'active', remark || '']);
+  const row = queryOne('SELECT last_insert_rowid() as id');
+  return row ? row.id : 0;
+}
+
+function updateAgent(id, data) {
+  const { user_id, username, agent_level, agent_code, commission_rate, total_referrals, total_commission, status, remark } = data;
+  const sets = [], params = [];
+  if (user_id !== undefined) { sets.push('user_id = ?'); params.push(user_id); }
+  if (username !== undefined) { sets.push('username = ?'); params.push(username); }
+  if (agent_level !== undefined) { sets.push('agent_level = ?'); params.push(agent_level); }
+  if (agent_code !== undefined) { sets.push('agent_code = ?'); params.push(agent_code); }
+  if (commission_rate !== undefined) { sets.push('commission_rate = ?'); params.push(commission_rate); }
+  if (total_referrals !== undefined) { sets.push('total_referrals = ?'); params.push(total_referrals); }
+  if (total_commission !== undefined) { sets.push('total_commission = ?'); params.push(total_commission); }
+  if (status !== undefined) { sets.push('status = ?'); params.push(status); }
+  if (remark !== undefined) { sets.push('remark = ?'); params.push(remark); }
+  sets.push("updated_at = datetime('now')");
+  params.push(id);
+  run('UPDATE agents SET ' + sets.join(', ') + ' WHERE id = ?', params);
+}
+
+function deleteAgent(id) {
+  run('DELETE FROM agents WHERE id = ?', [id]);
+}
+
+function toggleAgentStatus(id, status) {
+  run('UPDATE agents SET status = ?, updated_at = datetime(\'now\') WHERE id = ?', [status, id]);
+}
+
 // 导出新增函数
 module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDirty,
   // 配置管理
@@ -1048,4 +1096,6 @@ module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDir
   getArticleCategories, getArticleCategoryById, createArticleCategory, updateArticleCategory, deleteArticleCategory, toggleArticleCategory,
   // ========== 文章管理 ==========
   getArticles, getArticleById, createArticle, updateArticle, deleteArticle, toggleArticle,
+  // ========== 代理管理 ==========
+  getAgents, getAgentById, createAgent, updateAgent, deleteAgent, toggleAgentStatus,
 };

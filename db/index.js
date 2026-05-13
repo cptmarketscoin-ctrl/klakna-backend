@@ -635,6 +635,24 @@ function createTables(db) {
     )
   `);
 
+  // ========== 代理管理表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS agents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      username TEXT,
+      agent_level TEXT DEFAULT 'normal',
+      agent_code TEXT UNIQUE,
+      commission_rate REAL DEFAULT 0,
+      total_referrals INTEGER DEFAULT 0,
+      total_commission REAL DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      remark TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   markDirty();
 }
 
