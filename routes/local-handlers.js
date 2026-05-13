@@ -126,7 +126,10 @@ const routes = {
     '/exchange/Home/home': () => ({ code: 200, data: {}, msg: 'success' }),
     '/exchange/Home/pageHome': (path, body, user) => {
       const cache = global.__priceCache || {};
-      const content = Object.entries(cache).map(([symbol, data]) => {
+      // 首页仅展示前8个主流币种
+      const top8 = ['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT'];
+      const content = top8.map(symbol => {
+        const data = cache[symbol] || {};
         const fromSymbol = symbol.replace(/USDT$/, '');
         const lastPrice = data.price || 0;
         const change = data.change_24h || 0;
@@ -148,7 +151,7 @@ const routes = {
           },
           klineRespList: [],
           klinesRespList: [],
-          openPrice: Number((lastPrice / (1 + change / 100)).toFixed(2)),
+          openPrice: lastPrice ? Number((lastPrice / (1 + change / 100)).toFixed(2)) : 0,
         };
       });
       return { code: 200, content, msg: 'success' };
@@ -749,14 +752,13 @@ function handleGetValue(path, body) {
 
 function handleCoinList(path, body) {
   const cache = global.__priceCache || {};
-  const coins = [];
-  // 与 pageHome 保持一致，使用缓存中的全部币种
-  const symbols = Object.keys(cache).filter(k => k.endsWith('USDT') && cache[k].price);
-  for (const symbol of symbols.slice(0, 30)) {
-    const c = cache[symbol];
+  // 仅展示8个主流币种
+  const top8 = ['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT'];
+  const coins = top8.map((symbol, i) => {
+    const c = cache[symbol] || {};
     const fromSymbol = symbol.replace(/USDT$/, '');
-    coins.push({
-      id: coins.length + 1,
+    return {
+      id: i + 1,
       coinName: symbol,
       fromSymbol: fromSymbol,
       toSymbol: 'USDT',
@@ -765,12 +767,11 @@ function handleCoinList(path, body) {
       isLock: 0,
       isLockContract: 0,
       decimalPlaces: 8,
-      // 附加行情数据
       lastPrice: parseFloat(c.price || 0).toFixed(8),
       priceChangePercent: (c.change_percent || 0).toFixed(2),
       volume24h: String(Math.round(c.volume_24h || 0)),
-    });
-  }
+    };
+  });
   return { code: 200, content: coins, msg: 'success' };
 }
 
