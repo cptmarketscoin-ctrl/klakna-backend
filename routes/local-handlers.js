@@ -133,16 +133,17 @@ const routes = {
         const fromSymbol = symbol.replace(/USDT$/, '');
         const lastPrice = data.price || 0;
         const change = data.change_24h || 0;
+        const changePercent = Number(change).toFixed(2);
         return {
           coinName: fromSymbol,
           fromSymbol: fromSymbol,
           toSymbol: 'USDT',
-          iconUrl: '',
+          iconUrl: '/ETH/static/img/' + fromSymbol + '.png',  // 前端本地图标
           lastPrice: Number(lastPrice),
           priceChange: Number((change * lastPrice / 100).toFixed(2)),
-          priceChangePercentage: Number(change).toFixed(2),
+          priceChangePercentage: changePercent,
           isUp: change > 0,
-          rate: change > 0 ? '+' + Number(change).toFixed(2) : Number(change).toFixed(2),
+          rate: change > 0 ? '+' + changePercent : changePercent,
           twentyFourHrResp: {
             lastPrice: Number(lastPrice),
             priceChangePercent: Number(change),

@@ -663,8 +663,8 @@ async function handleLocalAPI(req, res, reqPath) {
     // 未匹配的本地路径返回默认配置（避免前端 getGlobalConfig 崩溃）
     // 前端很多 API 在原站也返回配置数据，我们需要提供安全的默认值
     const defaultConfig = {
-      fileId: '9007393', url: '', msg: 'success', name: 'Klakna',
-      address: 'Klakna Exchange', phone: '', advertising: '9007393',
+      fileId: '9007393', url: '', msg: 'success', name: 'CPT',
+      address: 'CPT Exchange', phone: '', advertising: '9007393',
       email: '', parameter: '', parameter1: '', parameter2: '',
       parameter3: '', video: '', explain: '', homeTheme: '',
       miningCode: '', miningUrl: '', service_config: '{}',
