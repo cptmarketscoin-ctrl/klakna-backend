@@ -432,14 +432,22 @@ app.use(async (req, res, next) => {
   if (reqPath.startsWith('/exchange/rockieFile/getFile')) {
     const urlObj = new URL(req.url, 'http://localhost');
     const fileId = urlObj.searchParams.get('fileId') || '';
+    // 从本地 public/ETH 目录读取并返回文件内容
     if (fileId && !fileId.includes('undefined')) {
-      // 重定向到 GitHub Pages 上的实际文件（绝对 URL）
-      const absUrl = fileId.startsWith('http') ? fileId : 'https://cptmarketscoin-ctrl.github.io' + (fileId.startsWith('/') ? '' : '/') + fileId;
-      res.writeHead(302, { Location: absUrl });
-      return res.end();
+      const localPath = fileId.replace(/^\/ETH\//, 'public/ETH/');
+      const fullPath = path.join(__dirname, localPath);
+      if (fs.existsSync(fullPath)) {
+        const ext = fullPath.split('.').pop().toLowerCase();
+        const mime = { svg:'image/svg+xml', png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', gif:'image/gif', ico:'image/x-icon', webp:'image/webp' }[ext] || 'application/octet-stream';
+        res.setHeader('Content-Type', mime);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.sendFile(fullPath);
+      }
     }
-    res.writeHead(302, { Location: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>' });
-    return res.end();
+    // 文件不存在 → 透明 SVG
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.end('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>');
+    return;
   }
 
   // ========== 本地用户 API ==========
