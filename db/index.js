@@ -812,6 +812,122 @@ function createTables(db) {
     )
   `);
 
+  // ========== 合约列表表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS contract_list (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      symbol TEXT,
+      type TEXT DEFAULT 'perpetual',
+      unit_amount REAL DEFAULT 1,
+      maker_fee_rate REAL DEFAULT 0.0002,
+      taker_fee_rate REAL DEFAULT 0.0005,
+      leverage REAL DEFAULT 100,
+      default_lever INTEGER DEFAULT 10,
+      buy_spread REAL DEFAULT 0,
+      sell_spread REAL DEFAULT 0,
+      settle_spread REAL DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      trade_status TEXT DEFAULT 'open',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 合约委托表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS contract_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_no TEXT,
+      user_id INTEGER,
+      username TEXT,
+      trade_type TEXT,
+      symbol TEXT,
+      type TEXT DEFAULT 'limit',
+      lever_rate INTEGER DEFAULT 10,
+      entrust_price REAL DEFAULT 0,
+      amount REAL DEFAULT 0,
+      traded_amount REAL DEFAULT 0,
+      avg_price REAL DEFAULT 0,
+      fee REAL DEFAULT 0,
+      profit REAL DEFAULT 0,
+      settle_profit REAL DEFAULT 0,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 合约成交明细表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS contract_trades (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      symbol TEXT,
+      order_type TEXT,
+      lever_rate INTEGER DEFAULT 10,
+      buy_id INTEGER,
+      sell_id INTEGER,
+      buy_user_id INTEGER,
+      sell_user_id INTEGER,
+      unit_price REAL DEFAULT 0,
+      trade_amount REAL DEFAULT 0,
+      trade_buy_fee REAL DEFAULT 0,
+      trade_sell_fee REAL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 合约持仓表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS contract_positions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      username TEXT,
+      symbol TEXT,
+      side TEXT,
+      lever_rate INTEGER DEFAULT 10,
+      hold_position REAL DEFAULT 0,
+      avail_position REAL DEFAULT 0,
+      freeze_position REAL DEFAULT 0,
+      position_margin REAL DEFAULT 0,
+      avg_price REAL DEFAULT 0,
+      unrealized_pnl REAL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 穿仓记录表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS contract_liquidations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      username TEXT,
+      symbol TEXT,
+      position_side TEXT,
+      open_position_price REAL DEFAULT 0,
+      close_position_price REAL DEFAULT 0,
+      profit REAL DEFAULT 0,
+      settle_profit REAL DEFAULT 0,
+      loss REAL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 合约账户表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS contract_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      username TEXT,
+      margin_name TEXT,
+      usable_balance REAL DEFAULT 0,
+      used_balance REAL DEFAULT 0,
+      freeze_balance REAL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   markDirty();
 }
 

@@ -1200,6 +1200,89 @@ function getOptionScenes(page = 1, size = 20, keyword, status) {
   return { list, total: cnt ? cnt.cnt : 0, page, size };
 }
 
+// ========== 合约列表 ==========
+function getContractList(enabledOnly = false) {
+  const sql = enabledOnly ? "SELECT * FROM contract_list WHERE status = 'active' ORDER BY id ASC" : 'SELECT * FROM contract_list ORDER BY id ASC';
+  return queryAll(sql);
+}
+function getContractById(id) { return queryOne('SELECT * FROM contract_list WHERE id = ?', [id]); }
+function createContract(data) {
+  const { symbol, type, unit_amount, maker_fee_rate, taker_fee_rate, leverage, default_lever, buy_spread, sell_spread, settle_spread, status, trade_status } = data;
+  run('INSERT INTO contract_list (symbol, type, unit_amount, maker_fee_rate, taker_fee_rate, leverage, default_lever, buy_spread, sell_spread, settle_spread, status, trade_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+    [symbol || '', type || 'perpetual', unit_amount || 1, maker_fee_rate || 0.0002, taker_fee_rate || 0.0005, leverage || 100, default_lever || 10, buy_spread || 0, sell_spread || 0, settle_spread || 0, status || 'active', trade_status || 'open']);
+  const row = queryOne('SELECT last_insert_rowid() as id'); return row ? row.id : 0;
+}
+function updateContract(id, data) {
+  const { symbol, type, unit_amount, maker_fee_rate, taker_fee_rate, leverage, default_lever, buy_spread, sell_spread, settle_spread, status, trade_status } = data;
+  const sets = [], params = [];
+  if (symbol !== undefined) { sets.push('symbol = ?'); params.push(symbol); }
+  if (type !== undefined) { sets.push('type = ?'); params.push(type); }
+  if (unit_amount !== undefined) { sets.push('unit_amount = ?'); params.push(unit_amount); }
+  if (maker_fee_rate !== undefined) { sets.push('maker_fee_rate = ?'); params.push(maker_fee_rate); }
+  if (taker_fee_rate !== undefined) { sets.push('taker_fee_rate = ?'); params.push(taker_fee_rate); }
+  if (leverage !== undefined) { sets.push('leverage = ?'); params.push(leverage); }
+  if (default_lever !== undefined) { sets.push('default_lever = ?'); params.push(default_lever); }
+  if (buy_spread !== undefined) { sets.push('buy_spread = ?'); params.push(buy_spread); }
+  if (sell_spread !== undefined) { sets.push('sell_spread = ?'); params.push(sell_spread); }
+  if (settle_spread !== undefined) { sets.push('settle_spread = ?'); params.push(settle_spread); }
+  if (status !== undefined) { sets.push('status = ?'); params.push(status); }
+  if (trade_status !== undefined) { sets.push('trade_status = ?'); params.push(trade_status); }
+  sets.push("updated_at = datetime('now')"); params.push(id);
+  run('UPDATE contract_list SET ' + sets.join(', ') + ' WHERE id = ?', params);
+}
+function deleteContract(id) { run('DELETE FROM contract_list WHERE id = ?', [id]); }
+function toggleContract(id, status) { run('UPDATE contract_list SET status = ?, updated_at = datetime(\'now\') WHERE id = ?', [status, id]); }
+
+// ========== 合约委托 ==========
+function getContractOrders(page = 1, size = 20, keyword, symbol, status) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (order_no LIKE ? OR username LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (symbol) { where += ' AND symbol = ?'; params.push(symbol); }
+  if (status) { where += ' AND status = ?'; params.push(status); }
+  const list = queryAll('SELECT * FROM contract_orders ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM contract_orders ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+// ========== 合约成交明细 ==========
+function getContractTrades(page = 1, size = 20, keyword, symbol) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND symbol LIKE ?'; params.push('%' + keyword + '%'); }
+  if (symbol) { where += ' AND symbol = ?'; params.push(symbol); }
+  const list = queryAll('SELECT * FROM contract_trades ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM contract_trades ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+// ========== 合约持仓 ==========
+function getContractPositions(page = 1, size = 20, keyword, symbol) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (username LIKE ? OR symbol LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (symbol) { where += ' AND symbol = ?'; params.push(symbol); }
+  const list = queryAll('SELECT * FROM contract_positions ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM contract_positions ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+// ========== 穿仓记录 ==========
+function getContractLiquidations(page = 1, size = 20, keyword, symbol) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (username LIKE ? OR symbol LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (symbol) { where += ' AND symbol = ?'; params.push(symbol); }
+  const list = queryAll('SELECT * FROM contract_liquidations ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM contract_liquidations ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+// ========== 合约账户 ==========
+function getContractAccounts(page = 1, size = 20, keyword) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (username LIKE ? OR margin_name LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  const list = queryAll('SELECT * FROM contract_accounts ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM contract_accounts ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
 // 导出新增函数
 module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDirty,
   // 配置管理
@@ -1258,4 +1341,7 @@ module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDir
   getOptionPairs, getOptionPairById, createOptionPair, updateOptionPair, deleteOptionPair, toggleOptionPair,
   getOptionPeriods, getOptionPeriodById, createOptionPeriod, updateOptionPeriod, deleteOptionPeriod, toggleOptionPeriod,
   getOptionOrders, getOptionScenes,
+  // ========== 永续合约 ==========
+  getContractList, getContractById, createContract, updateContract, deleteContract, toggleContract,
+  getContractOrders, getContractTrades, getContractPositions, getContractLiquidations, getContractAccounts,
 };

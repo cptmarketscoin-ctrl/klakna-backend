@@ -65,6 +65,9 @@ const { queryOne, queryAll, run, getDbSync, saveDb,
   getOptionPairs, getOptionPairById, createOptionPair, updateOptionPair, deleteOptionPair, toggleOptionPair,
   getOptionPeriods, getOptionPeriodById, createOptionPeriod, updateOptionPeriod, deleteOptionPeriod, toggleOptionPeriod,
   getOptionOrders, getOptionScenes,
+  // ========== 永续合约 ==========
+  getContractList, getContractById, createContract, updateContract, deleteContract, toggleContract,
+  getContractOrders, getContractTrades, getContractPositions, getContractLiquidations, getContractAccounts,
 } = require('../db/queries');
 const { signToken } = require('../middleware/auth');
 const config = require('../config');
@@ -1002,6 +1005,16 @@ const adminRoutes = {
     '/admin/option-period/toggle': handleAdminOptionPeriodToggle,
     '/admin/option-order/list': handleAdminOptionOrderList,
     '/admin/option-scene/list': handleAdminOptionSceneList,
+    // ========== 永续合约 ==========
+    '/admin/contract/list': handleAdminContractList,
+    '/admin/contract/update': handleAdminContractUpdate,
+    '/admin/contract/delete': handleAdminContractDelete,
+    '/admin/contract/toggle': handleAdminContractToggle,
+    '/admin/contract-order/list': handleAdminContractOrderList,
+    '/admin/contract-trade/list': handleAdminContractTradeList,
+    '/admin/contract-position/list': handleAdminContractPositionList,
+    '/admin/contract-liquidation/list': handleAdminContractLiquidationList,
+    '/admin/contract-account/list': handleAdminContractAccountList,
   }
 };
 
@@ -2139,6 +2152,70 @@ async function handleAdminOptionOrderList(path, body) {
 async function handleAdminOptionSceneList(path, body) {
   const { page = 1, size = 20, keyword, status } = body;
   try { const result = getOptionScenes(page, size, keyword, status); return { code: 200, data: result, msg: 'success' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// ================================================================
+// 永续合约 API - 合约列表/合约委托/成交明细/持仓/穿仓/账户
+// ================================================================
+
+// 合约列表 CRUD
+async function handleAdminContractList(path, body) {
+  const { enabledOnly } = body;
+  try { const list = getContractList(enabledOnly); return { code: 200, data: { list }, msg: 'success' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+async function handleAdminContractUpdate(path, body) {
+  const { id, symbol, type, unit_amount, maker_fee_rate, taker_fee_rate, leverage, default_lever, buy_spread, sell_spread, settle_spread, status, trade_status } = body;
+  if (!symbol) return { code: 400, data: null, msg: 'symbol required' };
+  try {
+    if (id) { updateContract(id, { symbol, type, unit_amount, maker_fee_rate, taker_fee_rate, leverage, default_lever, buy_spread, sell_spread, settle_spread, status, trade_status }); return { code: 200, data: { id }, msg: 'Contract updated' }; }
+    else { const newId = createContract({ symbol, type, unit_amount, maker_fee_rate, taker_fee_rate, leverage, default_lever, buy_spread, sell_spread, settle_spread, status, trade_status }); return { code: 200, data: { id: newId }, msg: 'Contract created' }; }
+  } catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+async function handleAdminContractDelete(path, body) {
+  const { id } = body; if (!id) return { code: 400, data: null, msg: 'id required' };
+  try { deleteContract(id); return { code: 200, data: null, msg: 'Contract deleted' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+async function handleAdminContractToggle(path, body) {
+  const { id, status } = body; if (!id || !status) return { code: 400, data: null, msg: 'id and status required' };
+  try { toggleContract(id, status); return { code: 200, data: null, msg: 'Contract toggled' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// 合约委托
+async function handleAdminContractOrderList(path, body) {
+  const { page = 1, size = 20, keyword, symbol, status } = body;
+  try { const result = getContractOrders(page, size, keyword, symbol, status); return { code: 200, data: result, msg: 'success' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// 成交明细
+async function handleAdminContractTradeList(path, body) {
+  const { page = 1, size = 20, keyword, symbol } = body;
+  try { const result = getContractTrades(page, size, keyword, symbol); return { code: 200, data: result, msg: 'success' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// 合约持仓
+async function handleAdminContractPositionList(path, body) {
+  const { page = 1, size = 20, keyword, symbol } = body;
+  try { const result = getContractPositions(page, size, keyword, symbol); return { code: 200, data: result, msg: 'success' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// 穿仓记录
+async function handleAdminContractLiquidationList(path, body) {
+  const { page = 1, size = 20, keyword, symbol } = body;
+  try { const result = getContractLiquidations(page, size, keyword, symbol); return { code: 200, data: result, msg: 'success' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// 合约账户
+async function handleAdminContractAccountList(path, body) {
+  const { page = 1, size = 20, keyword } = body;
+  try { const result = getContractAccounts(page, size, keyword); return { code: 200, data: result, msg: 'success' }; }
   catch(e) { return { code: 500, data: null, msg: e.message }; }
 }
 
