@@ -748,40 +748,29 @@ function handleGetValue(path, body) {
 }
 
 function handleCoinList(path, body) {
-  // 基础币种信息（前端首页和交易页需要）
-  const baseCoins = [
-    { symbol: 'BTCUSDT', coinName: 'Bitcoin', icon: '' },
-    { symbol: 'ETHUSDT', coinName: 'Ethereum', icon: '' },
-    { symbol: 'BNBUSDT', coinName: 'BNB', icon: '' },
-    { symbol: 'SOLUSDT', coinName: 'Solana', icon: '' },
-    { symbol: 'XRPUSDT', coinName: 'XRP', icon: '' },
-  ];
   const cache = global.__priceCache || {};
-  const coins = baseCoins.map(b => {
-    const c = cache[b.symbol];
-    if (c && c.price) {
-      return {
-        symbol: b.symbol,
-        coinName: b.coinName,
-        icon: b.icon,
-        price: parseFloat(c.price).toFixed(8),
-        change: (c.change_percent || 0).toFixed(2),
-        volume: String(Math.round(c.volume_24h || 0)),
-        high: '',
-        low: '',
-      };
-    }
-    // 缓存未就绪时回退硬编码
-    const fallback = { 'BTCUSDT':'79778.00000000','ETHUSDT':'2277.41000000','BNBUSDT':'638.65000000','SOLUSDT':'88.35000000','XRPUSDT':'1.38600000' };
-    return {
-      ...b,
-      price: fallback[b.symbol] || '0.00000000',
-      change: '0.00',
-      volume: '0',
-      high: '',
-      low: '',
-    };
-  });
+  const coins = [];
+  // 与 pageHome 保持一致，使用缓存中的全部币种
+  const symbols = Object.keys(cache).filter(k => k.endsWith('USDT') && cache[k].price);
+  for (const symbol of symbols.slice(0, 30)) {
+    const c = cache[symbol];
+    const fromSymbol = symbol.replace(/USDT$/, '');
+    coins.push({
+      id: coins.length + 1,
+      coinName: symbol,
+      fromSymbol: fromSymbol,
+      toSymbol: 'USDT',
+      iconUrl: '',
+      publish: true,
+      isLock: 0,
+      isLockContract: 0,
+      decimalPlaces: 8,
+      // 附加行情数据
+      lastPrice: parseFloat(c.price || 0).toFixed(8),
+      priceChangePercent: (c.change_percent || 0).toFixed(2),
+      volume24h: String(Math.round(c.volume_24h || 0)),
+    });
+  }
   return { code: 200, content: coins, msg: 'success' };
 }
 
