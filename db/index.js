@@ -568,6 +568,41 @@ function createTables(db) {
     )
   `);
 
+  // ========== 轮播图管理表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS homepage_banners (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      image_url TEXT NOT NULL,
+      link_url TEXT,
+      description TEXT,
+      sort_order INTEGER DEFAULT 0,
+      enabled INTEGER DEFAULT 1,
+      start_time TEXT,
+      end_time TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 咨询项目管理表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS homepage_consultations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT,
+      image_url TEXT,
+      category TEXT DEFAULT 'news',
+      author TEXT,
+      sort_order INTEGER DEFAULT 0,
+      enabled INTEGER DEFAULT 1,
+      is_top INTEGER DEFAULT 0,
+      view_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   markDirty();
 }
 

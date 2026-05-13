@@ -48,6 +48,10 @@ const { queryOne, queryAll, run, getDbSync, saveDb,
   getCoinList, createCoin, updateCoin, deleteCoin, toggleCoinStatus,
   // ========== 配置管理 ==========
   getConfigByCategory, upsertConfig, deleteConfig,
+  // ========== 轮播图管理 ==========
+  getHomepageBanners, getHomepageBannerById, createHomepageBanner, updateHomepageBanner, deleteHomepageBanner, toggleHomepageBanner,
+  // ========== 咨询项目管理 ==========
+  getHomepageConsultations, getHomepageConsultationById, createHomepageConsultation, updateHomepageConsultation, deleteHomepageConsultation, toggleHomepageConsultation,
 } = require('../db/queries');
 const { signToken } = require('../middleware/auth');
 const config = require('../config');
@@ -939,6 +943,16 @@ const adminRoutes = {
     '/admin/config-settings/list': handleConfigSettingsList,
     '/admin/config-settings/update': handleConfigSettingsUpdate,
     '/admin/config-settings/delete': handleConfigSettingsDelete,
+    // ========== 轮播图管理 ==========
+    '/admin/banner/list': handleAdminBannerList,
+    '/admin/banner/update': handleAdminBannerUpdate,
+    '/admin/banner/delete': handleAdminBannerDelete,
+    '/admin/banner/toggle': handleAdminBannerToggle,
+    // ========== 咨询项目管理 ==========
+    '/admin/consultation/list': handleAdminConsultationList,
+    '/admin/consultation/update': handleAdminConsultationUpdate,
+    '/admin/consultation/delete': handleAdminConsultationDelete,
+    '/admin/consultation/toggle': handleAdminConsultationToggle,
   }
 };
 
@@ -1656,6 +1670,112 @@ function handleAdminContractRiskDelete(path, body) {
   try {
     run('DELETE FROM contract_risk WHERE id=?', [id]);
     return { code: 200, data: null, msg: 'Deleted' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+// ================================================================
+// 首页管理 API - 轮播图管理
+// ================================================================
+
+async function handleAdminBannerList(path, body) {
+  const { enabledOnly } = body;
+  try {
+    const list = getHomepageBanners(enabledOnly);
+    return { code: 200, data: { list }, msg: 'success' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminBannerUpdate(path, body) {
+  const { id, title, image_url, link_url, description, sort_order, enabled, start_time, end_time } = body;
+  if (!title || !image_url) return { code: 400, data: null, msg: 'title and image_url required' };
+  
+  try {
+    if (id) {
+      updateHomepageBanner(id, { title, image_url, link_url, description, sort_order, enabled, start_time, end_time });
+      return { code: 200, data: { id }, msg: 'Banner updated' };
+    } else {
+      const newId = createHomepageBanner({ title, image_url, link_url, description, sort_order, enabled, start_time, end_time });
+      return { code: 200, data: { id: newId }, msg: 'Banner created' };
+    }
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminBannerDelete(path, body) {
+  const { id } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    deleteHomepageBanner(id);
+    return { code: 200, data: null, msg: 'Banner deleted' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminBannerToggle(path, body) {
+  const { id, enabled } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    toggleHomepageBanner(id, enabled);
+    return { code: 200, data: null, msg: 'Banner toggled' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+// ================================================================
+// 首页管理 API - 咨询项目管理
+// ================================================================
+
+async function handleAdminConsultationList(path, body) {
+  const { enabledOnly } = body;
+  try {
+    const list = getHomepageConsultations(enabledOnly);
+    return { code: 200, data: { list }, msg: 'success' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminConsultationUpdate(path, body) {
+  const { id, title, content, image_url, category, author, sort_order, enabled, is_top } = body;
+  if (!title) return { code: 400, data: null, msg: 'title required' };
+  
+  try {
+    if (id) {
+      updateHomepageConsultation(id, { title, content, image_url, category, author, sort_order, enabled, is_top });
+      return { code: 200, data: { id }, msg: 'Consultation updated' };
+    } else {
+      const newId = createHomepageConsultation({ title, content, image_url, category, author, sort_order, enabled, is_top });
+      return { code: 200, data: { id: newId }, msg: 'Consultation created' };
+    }
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminConsultationDelete(path, body) {
+  const { id } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    deleteHomepageConsultation(id);
+    return { code: 200, data: null, msg: 'Consultation deleted' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminConsultationToggle(path, body) {
+  const { id, enabled } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    toggleHomepageConsultation(id, enabled);
+    return { code: 200, data: null, msg: 'Consultation toggled' };
   } catch(e) {
     return { code: 500, data: null, msg: e.message };
   }

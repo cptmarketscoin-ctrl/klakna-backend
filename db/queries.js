@@ -819,6 +819,98 @@ function deleteConfig(id) {
   run('DELETE FROM config_settings WHERE id = ?', [id]);
 }
 
+// ========== 轮播图管理 ==========
+function getHomepageBanners(enabledOnly = false) {
+  const sql = enabledOnly
+    ? 'SELECT * FROM homepage_banners WHERE enabled = 1 ORDER BY sort_order ASC, id DESC'
+    : 'SELECT * FROM homepage_banners ORDER BY sort_order ASC, id DESC';
+  return queryAll(sql);
+}
+
+function getHomepageBannerById(id) {
+  return queryOne('SELECT * FROM homepage_banners WHERE id = ?', [id]);
+}
+
+function createHomepageBanner(data) {
+  const { title, image_url, link_url, description, sort_order, enabled, start_time, end_time } = data;
+  run(`INSERT INTO homepage_banners (title, image_url, link_url, description, sort_order, enabled, start_time, end_time)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [title, image_url, link_url || '', description || '', sort_order || 0, enabled !== undefined ? enabled : 1, start_time || null, end_time || null]);
+  const row = queryOne('SELECT last_insert_rowid() as id');
+  return row ? row.id : 0;
+}
+
+function updateHomepageBanner(id, data) {
+  const { title, image_url, link_url, description, sort_order, enabled, start_time, end_time } = data;
+  const sets = [];
+  const params = [];
+  if (title !== undefined) { sets.push('title = ?'); params.push(title); }
+  if (image_url !== undefined) { sets.push('image_url = ?'); params.push(image_url); }
+  if (link_url !== undefined) { sets.push('link_url = ?'); params.push(link_url); }
+  if (description !== undefined) { sets.push('description = ?'); params.push(description); }
+  if (sort_order !== undefined) { sets.push('sort_order = ?'); params.push(sort_order); }
+  if (enabled !== undefined) { sets.push('enabled = ?'); params.push(enabled ? 1 : 0); }
+  if (start_time !== undefined) { sets.push('start_time = ?'); params.push(start_time); }
+  if (end_time !== undefined) { sets.push('end_time = ?'); params.push(end_time); }
+  sets.push("updated_at = datetime('now')");
+  params.push(id);
+  run('UPDATE homepage_banners SET ' + sets.join(', ') + ' WHERE id = ?', params);
+}
+
+function deleteHomepageBanner(id) {
+  run('DELETE FROM homepage_banners WHERE id = ?', [id]);
+}
+
+function toggleHomepageBanner(id, enabled) {
+  run('UPDATE homepage_banners SET enabled = ?, updated_at = datetime(\'now\') WHERE id = ?', [enabled ? 1 : 0, id]);
+}
+
+// ========== 咨询项目管理 ==========
+function getHomepageConsultations(enabledOnly = false) {
+  const sql = enabledOnly
+    ? 'SELECT * FROM homepage_consultations WHERE enabled = 1 ORDER BY is_top DESC, sort_order ASC, id DESC'
+    : 'SELECT * FROM homepage_consultations ORDER BY is_top DESC, sort_order ASC, id DESC';
+  return queryAll(sql);
+}
+
+function getHomepageConsultationById(id) {
+  return queryOne('SELECT * FROM homepage_consultations WHERE id = ?', [id]);
+}
+
+function createHomepageConsultation(data) {
+  const { title, content, image_url, category, author, sort_order, enabled, is_top } = data;
+  run(`INSERT INTO homepage_consultations (title, content, image_url, category, author, sort_order, enabled, is_top)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [title, content || '', image_url || '', category || 'news', author || '', sort_order || 0, enabled !== undefined ? enabled : 1, is_top ? 1 : 0]);
+  const row = queryOne('SELECT last_insert_rowid() as id');
+  return row ? row.id : 0;
+}
+
+function updateHomepageConsultation(id, data) {
+  const { title, content, image_url, category, author, sort_order, enabled, is_top } = data;
+  const sets = [];
+  const params = [];
+  if (title !== undefined) { sets.push('title = ?'); params.push(title); }
+  if (content !== undefined) { sets.push('content = ?'); params.push(content); }
+  if (image_url !== undefined) { sets.push('image_url = ?'); params.push(image_url); }
+  if (category !== undefined) { sets.push('category = ?'); params.push(category); }
+  if (author !== undefined) { sets.push('author = ?'); params.push(author); }
+  if (sort_order !== undefined) { sets.push('sort_order = ?'); params.push(sort_order); }
+  if (enabled !== undefined) { sets.push('enabled = ?'); params.push(enabled ? 1 : 0); }
+  if (is_top !== undefined) { sets.push('is_top = ?'); params.push(is_top ? 1 : 0); }
+  sets.push("updated_at = datetime('now')");
+  params.push(id);
+  run('UPDATE homepage_consultations SET ' + sets.join(', ') + ' WHERE id = ?', params);
+}
+
+function deleteHomepageConsultation(id) {
+  run('DELETE FROM homepage_consultations WHERE id = ?', [id]);
+}
+
+function toggleHomepageConsultation(id, enabled) {
+  run('UPDATE homepage_consultations SET enabled = ?, updated_at = datetime(\'now\') WHERE id = ?', [enabled ? 1 : 0, id]);
+}
+
 // 导出新增函数
 module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDirty,
   // 配置管理
@@ -860,4 +952,8 @@ module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDir
   getCoinList, createCoin, updateCoin, deleteCoin, toggleCoinStatus,
   // ========== 客服管理 ==========
   getCustomerService, updateCustomerService, getCsMessages, addCsMessage, replyCsMessage, deleteCsMessage,
+  // ========== 轮播图管理 ==========
+  getHomepageBanners, getHomepageBannerById, createHomepageBanner, updateHomepageBanner, deleteHomepageBanner, toggleHomepageBanner,
+  // ========== 咨询项目管理 ==========
+  getHomepageConsultations, getHomepageConsultationById, createHomepageConsultation, updateHomepageConsultation, deleteHomepageConsultation, toggleHomepageConsultation,
 };
