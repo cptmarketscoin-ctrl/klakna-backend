@@ -148,7 +148,7 @@ const routes = {
           coinName: fromSymbol,
           fromSymbol: fromSymbol,
           toSymbol: 'USDT',
-          iconUrl: '/ETH/static/img/' + fromSymbol + '.svg',
+          iconUrl: '/ETH/static/img/' + fromSymbol + '.png',
           lastPrice: Number(lastPrice),
           priceChange: Number((change * lastPrice / 100).toFixed(2)),
           priceChangePercentage: changePercent,
