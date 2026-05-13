@@ -67,6 +67,18 @@ function broadcastPrices() {
       messages.forEach(msg => {
         client.send(JSON.stringify(msg));
       });
+      // 推送 TOP8 币种订单簿 1005
+      const top8 = ['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT'];
+      top8.forEach(pair => {
+        const p = (priceCache[pair] && priceCache[pair].price) || 0;
+        if (!p) return;
+        const book = { type: '1005', symbol: pair, asks: [], bids: [] };
+        for (let i = 1; i <= 6; i++) {
+          book.asks.push({ price: Math.round(p * (1 + i * 0.0005) * 100) / 100, amount: +(Math.random() * 3).toFixed(4) });
+          book.bids.push({ price: Math.round(p * (1 - i * 0.0005) * 100) / 100, amount: +(Math.random() * 3).toFixed(4) });
+        }
+        client.send(JSON.stringify(book));
+      });
     }
   });
 }

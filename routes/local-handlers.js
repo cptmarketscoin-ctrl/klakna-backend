@@ -344,6 +344,56 @@ const routes = {
     '/exchange/user/myState': handleMyState,
     '/exchange/RockieMessage/getValue': handleRockieMessageGetValue,
     '/exchange/rockieFile/getFile': handleRockieFileGetFile,
+
+    // ========== 交易系统 - 订单簿 & 下单 ==========
+    '/exchange/newStockCoinTrade/orderBook': (path, body, user) => {
+      const { symbol } = body || {};
+      const pair = symbol || 'BTCUSDT';
+      const base = (global.__priceCache && global.__priceCache[pair] && global.__priceCache[pair].price) || 80000;
+      const asks = [], bids = [];
+      for (let i = 1; i <= 10; i++) {
+        asks.push({ price: Number((base + base * i * 0.0005).toFixed(4)), amount: Number((Math.random() * 3).toFixed(4)), total: 0 });
+        bids.push({ price: Number((base - base * i * 0.0005).toFixed(4)), amount: Number((Math.random() * 3).toFixed(4)), total: 0 });
+      }
+      asks[0].total = asks[0].amount; for (let i = 1; i < asks.length; i++) asks[i].total = Number((asks[i].amount + asks[i-1].total).toFixed(4));
+      bids[0].total = bids[0].amount; for (let i = 1; i < bids.length; i++) bids[i].total = Number((bids[i].amount + bids[i-1].total).toFixed(4));
+      return { code: 200, data: { symbol: pair, asks, bids, spread: Number((asks[0].price - bids[0].price).toFixed(4)) }, msg: 'success' };
+    },
+    '/exchange/newStockCoinTrade/placeOrder': (path, body, user) => {
+      const { symbol, side, type, price, amount } = body || {};
+      if (!amount || amount <= 0) return { code: 400, msg: 'Invalid amount' };
+      const orderNo = 'ORD' + Date.now() + Math.random().toString(36).slice(2,6);
+      const fillPrice = price || ((global.__priceCache && global.__priceCache[symbol || 'BTCUSDT'] && global.__priceCache[symbol || 'BTCUSDT'].price) || 80000);
+      const total = Number((amount * fillPrice).toFixed(2));
+      global.__mockOrders = global.__mockOrders || [];
+      global.__mockOrders.unshift({
+        id: orderNo, userId: user ? user.id : 'guest', symbol: symbol || 'BTCUSDT',
+        side: side || 'buy', type: type || 'limit', price: Number(fillPrice),
+        amount: Number(amount), filled: Number(amount), total, fee: Number((total * 0.001).toFixed(4)),
+        status: 'filled', created_at: new Date().toISOString()
+      });
+      if (global.__mockOrders.length > 100) global.__mockOrders = global.__mockOrders.slice(0, 100);
+      return { code: 200, data: { orderNo, status: 'filled', price: fillPrice, amount, total, fee: Number((total * 0.001).toFixed(4)) }, msg: 'success' };
+    },
+    '/exchange/newStockCoinTrade/orders': (path, body, user) => {
+      global.__mockOrders = global.__mockOrders || [];
+      const { symbol } = body || {};
+      let orders = global.__mockOrders;
+      if (symbol) orders = orders.filter(o => o.symbol === symbol);
+      return { code: 200, data: { content: orders.slice(0, 20) }, msg: 'success' };
+    },
+    '/exchange/newStockCoinTrade/history': (path, body, user) => {
+      global.__mockOrders = global.__mockOrders || [];
+      const filled = global.__mockOrders.filter(o => o.status === 'filled');
+      return { code: 200, data: { content: filled.slice(0, 20) }, msg: 'success' };
+    },
+    '/exchange/newStockCoinTrade/cancelOrder': (path, body, user) => {
+      const { orderId } = body || {};
+      global.__mockOrders = global.__mockOrders || [];
+      const idx = global.__mockOrders.findIndex(o => o.id === orderId);
+      if (idx >= 0) global.__mockOrders[idx].status = 'cancelled';
+      return { code: 200, msg: 'success' };
+    },
   },
   'GET': {
     '/exchange/RockieMessage/getApp': handleRockieMessageGetApp,
