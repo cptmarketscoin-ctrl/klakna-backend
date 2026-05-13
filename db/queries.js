@@ -1127,6 +1127,79 @@ function toggleTradingPair(id, status) {
   run('UPDATE trading_pairs SET status = ?, updated_at = datetime(\'now\') WHERE id = ?', [status, id]);
 }
 
+// ========== 期权交易对 ==========
+function getOptionPairs(enabledOnly = false) {
+  const sql = enabledOnly ? "SELECT * FROM option_pairs WHERE status = 'active' ORDER BY id ASC" : 'SELECT * FROM option_pairs ORDER BY id ASC';
+  return queryAll(sql);
+}
+function getOptionPairById(id) { return queryOne('SELECT * FROM option_pairs WHERE id = ?', [id]); }
+function createOptionPair(data) {
+  const { pair_name, coin_name, base_coin_name, status, trade_status } = data;
+  run('INSERT INTO option_pairs (pair_name, coin_name, base_coin_name, status, trade_status) VALUES (?,?,?,?,?)', [pair_name || '', coin_name || '', base_coin_name || '', status || 'active', trade_status || 'open']);
+  const row = queryOne('SELECT last_insert_rowid() as id'); return row ? row.id : 0;
+}
+function updateOptionPair(id, data) {
+  const { pair_name, coin_name, base_coin_name, status, trade_status } = data;
+  const sets = [], params = [];
+  if (pair_name !== undefined) { sets.push('pair_name = ?'); params.push(pair_name); }
+  if (coin_name !== undefined) { sets.push('coin_name = ?'); params.push(coin_name); }
+  if (base_coin_name !== undefined) { sets.push('base_coin_name = ?'); params.push(base_coin_name); }
+  if (status !== undefined) { sets.push('status = ?'); params.push(status); }
+  if (trade_status !== undefined) { sets.push('trade_status = ?'); params.push(trade_status); }
+  sets.push("updated_at = datetime('now')"); params.push(id);
+  run('UPDATE option_pairs SET ' + sets.join(', ') + ' WHERE id = ?', params);
+}
+function deleteOptionPair(id) { run('DELETE FROM option_pairs WHERE id = ?', [id]); }
+function toggleOptionPair(id, status) { run('UPDATE option_pairs SET status = ?, updated_at = datetime(\'now\') WHERE id = ?', [status, id]); }
+
+// ========== 期权周期 ==========
+function getOptionPeriods(enabledOnly = false) {
+  const sql = enabledOnly ? "SELECT * FROM option_periods WHERE status = 'active' ORDER BY seconds ASC" : 'SELECT * FROM option_periods ORDER BY seconds ASC';
+  return queryAll(sql);
+}
+function getOptionPeriodById(id) { return queryOne('SELECT * FROM option_periods WHERE id = ?', [id]); }
+function createOptionPeriod(data) {
+  const { time_name, seconds, fee_rate, rise_odds, fall_odds, flat_odds, status } = data;
+  run('INSERT INTO option_periods (time_name, seconds, fee_rate, rise_odds, fall_odds, flat_odds, status) VALUES (?,?,?,?,?,?,?)', [time_name || '', seconds || 60, fee_rate || 0, rise_odds || 1.8, fall_odds || 1.8, flat_odds || 1.5, status || 'active']);
+  const row = queryOne('SELECT last_insert_rowid() as id'); return row ? row.id : 0;
+}
+function updateOptionPeriod(id, data) {
+  const { time_name, seconds, fee_rate, rise_odds, fall_odds, flat_odds, status } = data;
+  const sets = [], params = [];
+  if (time_name !== undefined) { sets.push('time_name = ?'); params.push(time_name); }
+  if (seconds !== undefined) { sets.push('seconds = ?'); params.push(seconds); }
+  if (fee_rate !== undefined) { sets.push('fee_rate = ?'); params.push(fee_rate); }
+  if (rise_odds !== undefined) { sets.push('rise_odds = ?'); params.push(rise_odds); }
+  if (fall_odds !== undefined) { sets.push('fall_odds = ?'); params.push(fall_odds); }
+  if (flat_odds !== undefined) { sets.push('flat_odds = ?'); params.push(flat_odds); }
+  if (status !== undefined) { sets.push('status = ?'); params.push(status); }
+  sets.push("updated_at = datetime('now')"); params.push(id);
+  run('UPDATE option_periods SET ' + sets.join(', ') + ' WHERE id = ?', params);
+}
+function deleteOptionPeriod(id) { run('DELETE FROM option_periods WHERE id = ?', [id]); }
+function toggleOptionPeriod(id, status) { run('UPDATE option_periods SET status = ?, updated_at = datetime(\'now\') WHERE id = ?', [status, id]); }
+
+// ========== 期权订单 ==========
+function getOptionOrders(page = 1, size = 20, keyword, pairName, status) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (user_id LIKE ? OR pair_name LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (pairName) { where += ' AND pair_name = ?'; params.push(pairName); }
+  if (status) { where += ' AND status = ?'; params.push(status); }
+  const list = queryAll('SELECT * FROM option_orders ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM option_orders ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+// ========== 期权场景 ==========
+function getOptionScenes(page = 1, size = 20, keyword, status) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (scene_sn LIKE ? OR pair_time_name LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (status) { where += ' AND status = ?'; params.push(status); }
+  const list = queryAll('SELECT * FROM option_scenes ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM option_scenes ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
 // 导出新增函数
 module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDirty,
   // 配置管理
@@ -1181,4 +1254,8 @@ module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDir
   // ========== 币币交易 ==========
   getBuyOrders, getSellOrders, getTradeRecords,
   getTradingPairs, getTradingPairById, createTradingPair, updateTradingPair, deleteTradingPair, toggleTradingPair,
+  // ========== 期权交易 ==========
+  getOptionPairs, getOptionPairById, createOptionPair, updateOptionPair, deleteOptionPair, toggleOptionPair,
+  getOptionPeriods, getOptionPeriodById, createOptionPeriod, updateOptionPeriod, deleteOptionPeriod, toggleOptionPeriod,
+  getOptionOrders, getOptionScenes,
 };

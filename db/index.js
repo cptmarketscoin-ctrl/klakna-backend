@@ -739,6 +739,79 @@ function createTables(db) {
     )
   `);
 
+  // ========== 期权交易对表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS option_pairs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pair_name TEXT,
+      coin_name TEXT,
+      base_coin_name TEXT,
+      status TEXT DEFAULT 'active',
+      trade_status TEXT DEFAULT 'open',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 期权周期表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS option_periods (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      time_name TEXT,
+      seconds INTEGER DEFAULT 60,
+      fee_rate REAL DEFAULT 0,
+      rise_odds REAL DEFAULT 1.8,
+      fall_odds REAL DEFAULT 1.8,
+      flat_odds REAL DEFAULT 1.5,
+      status TEXT DEFAULT 'active',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 期权订单表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS option_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      agent_id INTEGER,
+      pair_name TEXT,
+      bet_amount REAL DEFAULT 0,
+      bet_coin_name TEXT,
+      odds REAL DEFAULT 0,
+      range REAL DEFAULT 0,
+      direction TEXT,
+      status TEXT DEFAULT 'pending',
+      fee REAL DEFAULT 0,
+      delivery_amount REAL DEFAULT 0,
+      delivery_time TEXT,
+      open_price REAL DEFAULT 0,
+      close_price REAL DEFAULT 0,
+      result TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 期权场景表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS option_scenes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scene_sn TEXT,
+      pair_time_name TEXT,
+      begin_time TEXT,
+      end_time TEXT,
+      begin_price REAL DEFAULT 0,
+      end_price REAL DEFAULT 0,
+      delivery_direction TEXT,
+      delivery_range REAL DEFAULT 0,
+      delivery_time TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   markDirty();
 }
 

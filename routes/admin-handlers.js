@@ -61,6 +61,10 @@ const { queryOne, queryAll, run, getDbSync, saveDb,
   // ========== 币币交易 ==========
   getBuyOrders, getSellOrders, getTradeRecords,
   getTradingPairs, getTradingPairById, createTradingPair, updateTradingPair, deleteTradingPair, toggleTradingPair,
+  // ========== 期权交易 ==========
+  getOptionPairs, getOptionPairById, createOptionPair, updateOptionPair, deleteOptionPair, toggleOptionPair,
+  getOptionPeriods, getOptionPeriodById, createOptionPeriod, updateOptionPeriod, deleteOptionPeriod, toggleOptionPeriod,
+  getOptionOrders, getOptionScenes,
 } = require('../db/queries');
 const { signToken } = require('../middleware/auth');
 const config = require('../config');
@@ -987,6 +991,17 @@ const adminRoutes = {
     '/admin/trading-pair/update': handleAdminTradingPairUpdate,
     '/admin/trading-pair/delete': handleAdminTradingPairDelete,
     '/admin/trading-pair/toggle': handleAdminTradingPairToggle,
+    // ========== 期权交易 ==========
+    '/admin/option-pair/list': handleAdminOptionPairList,
+    '/admin/option-pair/update': handleAdminOptionPairUpdate,
+    '/admin/option-pair/delete': handleAdminOptionPairDelete,
+    '/admin/option-pair/toggle': handleAdminOptionPairToggle,
+    '/admin/option-period/list': handleAdminOptionPeriodList,
+    '/admin/option-period/update': handleAdminOptionPeriodUpdate,
+    '/admin/option-period/delete': handleAdminOptionPeriodDelete,
+    '/admin/option-period/toggle': handleAdminOptionPeriodToggle,
+    '/admin/option-order/list': handleAdminOptionOrderList,
+    '/admin/option-scene/list': handleAdminOptionSceneList,
   }
 };
 
@@ -2056,6 +2071,74 @@ async function handleAdminTradingPairToggle(path, body) {
   const { id, status } = body;
   if (!id || !status) return { code: 400, data: null, msg: 'id and status required' };
   try { toggleTradingPair(id, status); return { code: 200, data: null, msg: 'Pair toggled' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// ================================================================
+// 期权交易 API
+// ================================================================
+
+// 期权交易对
+async function handleAdminOptionPairList(path, body) {
+  const { enabledOnly } = body;
+  try { const list = getOptionPairs(enabledOnly); return { code: 200, data: { list }, msg: 'success' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+async function handleAdminOptionPairUpdate(path, body) {
+  const { id, pair_name, coin_name, base_coin_name, status, trade_status } = body;
+  if (!pair_name) return { code: 400, data: null, msg: 'pair_name required' };
+  try {
+    if (id) { updateOptionPair(id, { pair_name, coin_name, base_coin_name, status, trade_status }); return { code: 200, data: { id }, msg: 'Pair updated' }; }
+    else { const newId = createOptionPair({ pair_name, coin_name, base_coin_name, status, trade_status }); return { code: 200, data: { id: newId }, msg: 'Pair created' }; }
+  } catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+async function handleAdminOptionPairDelete(path, body) {
+  const { id } = body; if (!id) return { code: 400, data: null, msg: 'id required' };
+  try { deleteOptionPair(id); return { code: 200, data: null, msg: 'Pair deleted' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+async function handleAdminOptionPairToggle(path, body) {
+  const { id, status } = body; if (!id || !status) return { code: 400, data: null, msg: 'id and status required' };
+  try { toggleOptionPair(id, status); return { code: 200, data: null, msg: 'Pair toggled' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// 期权周期
+async function handleAdminOptionPeriodList(path, body) {
+  const { enabledOnly } = body;
+  try { const list = getOptionPeriods(enabledOnly); return { code: 200, data: { list }, msg: 'success' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+async function handleAdminOptionPeriodUpdate(path, body) {
+  const { id, time_name, seconds, fee_rate, rise_odds, fall_odds, flat_odds, status } = body;
+  if (!time_name) return { code: 400, data: null, msg: 'time_name required' };
+  try {
+    if (id) { updateOptionPeriod(id, { time_name, seconds, fee_rate, rise_odds, fall_odds, flat_odds, status }); return { code: 200, data: { id }, msg: 'Period updated' }; }
+    else { const newId = createOptionPeriod({ time_name, seconds, fee_rate, rise_odds, fall_odds, flat_odds, status }); return { code: 200, data: { id: newId }, msg: 'Period created' }; }
+  } catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+async function handleAdminOptionPeriodDelete(path, body) {
+  const { id } = body; if (!id) return { code: 400, data: null, msg: 'id required' };
+  try { deleteOptionPeriod(id); return { code: 200, data: null, msg: 'Period deleted' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+async function handleAdminOptionPeriodToggle(path, body) {
+  const { id, status } = body; if (!id || !status) return { code: 400, data: null, msg: 'id and status required' };
+  try { toggleOptionPeriod(id, status); return { code: 200, data: null, msg: 'Period toggled' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// 期权订单
+async function handleAdminOptionOrderList(path, body) {
+  const { page = 1, size = 20, keyword, pairName, status } = body;
+  try { const result = getOptionOrders(page, size, keyword, pairName, status); return { code: 200, data: result, msg: 'success' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+// 期权场景
+async function handleAdminOptionSceneList(path, body) {
+  const { page = 1, size = 20, keyword, status } = body;
+  try { const result = getOptionScenes(page, size, keyword, status); return { code: 200, data: result, msg: 'success' }; }
   catch(e) { return { code: 500, data: null, msg: e.message }; }
 }
 
