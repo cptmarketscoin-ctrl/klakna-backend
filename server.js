@@ -432,12 +432,12 @@ app.use(async (req, res, next) => {
   if (reqPath.startsWith('/exchange/rockieFile/getFile')) {
     const urlObj = new URL(req.url, 'http://localhost');
     const fileId = urlObj.searchParams.get('fileId') || '';
-    // 重定向到 GitHub Pages 上的实际文件
     if (fileId && !fileId.includes('undefined')) {
-      res.writeHead(302, { Location: fileId });
+      // 重定向到 GitHub Pages 上的实际文件（绝对 URL）
+      const absUrl = fileId.startsWith('http') ? fileId : 'https://cptmarketscoin-ctrl.github.io' + (fileId.startsWith('/') ? '' : '/') + fileId;
+      res.writeHead(302, { Location: absUrl });
       return res.end();
     }
-    // fileId 为空或 undefined，返回透明图片
     res.writeHead(302, { Location: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>' });
     return res.end();
   }
