@@ -52,6 +52,10 @@ const { queryOne, queryAll, run, getDbSync, saveDb,
   getHomepageBanners, getHomepageBannerById, createHomepageBanner, updateHomepageBanner, deleteHomepageBanner, toggleHomepageBanner,
   // ========== 咨询项目管理 ==========
   getHomepageConsultations, getHomepageConsultationById, createHomepageConsultation, updateHomepageConsultation, deleteHomepageConsultation, toggleHomepageConsultation,
+  // ========== 文章分类管理 ==========
+  getArticleCategories, getArticleCategoryById, createArticleCategory, updateArticleCategory, deleteArticleCategory, toggleArticleCategory,
+  // ========== 文章管理 ==========
+  getArticles, getArticleById, createArticle, updateArticle, deleteArticle, toggleArticle,
 } = require('../db/queries');
 const { signToken } = require('../middleware/auth');
 const config = require('../config');
@@ -953,6 +957,17 @@ const adminRoutes = {
     '/admin/consultation/update': handleAdminConsultationUpdate,
     '/admin/consultation/delete': handleAdminConsultationDelete,
     '/admin/consultation/toggle': handleAdminConsultationToggle,
+    // ========== 文章分类管理 ==========
+    '/admin/article-category/list': handleAdminArticleCategoryList,
+    '/admin/article-category/update': handleAdminArticleCategoryUpdate,
+    '/admin/article-category/delete': handleAdminArticleCategoryDelete,
+    '/admin/article-category/toggle': handleAdminArticleCategoryToggle,
+    // ========== 文章管理 ==========
+    '/admin/article/list': handleAdminArticleList,
+    '/admin/article/detail': handleAdminArticleDetail,
+    '/admin/article/update': handleAdminArticleUpdate,
+    '/admin/article/delete': handleAdminArticleDelete,
+    '/admin/article/toggle': handleAdminArticleToggle,
   }
 };
 
@@ -1776,6 +1791,122 @@ async function handleAdminConsultationToggle(path, body) {
   try {
     toggleHomepageConsultation(id, enabled);
     return { code: 200, data: null, msg: 'Consultation toggled' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+// ================================================================
+// 文章管理 API - 文章分类
+// ================================================================
+
+async function handleAdminArticleCategoryList(path, body) {
+  const { enabledOnly } = body;
+  try {
+    const list = getArticleCategories(enabledOnly);
+    return { code: 200, data: { list }, msg: 'success' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminArticleCategoryUpdate(path, body) {
+  const { id, name, description, sort_order, enabled } = body;
+  if (!name) return { code: 400, data: null, msg: 'name required' };
+  try {
+    if (id) {
+      updateArticleCategory(id, { name, description, sort_order, enabled });
+      return { code: 200, data: { id }, msg: 'Category updated' };
+    } else {
+      const newId = createArticleCategory({ name, description, sort_order, enabled });
+      return { code: 200, data: { id: newId }, msg: 'Category created' };
+    }
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminArticleCategoryDelete(path, body) {
+  const { id } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    deleteArticleCategory(id);
+    return { code: 200, data: null, msg: 'Category deleted' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminArticleCategoryToggle(path, body) {
+  const { id, enabled } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    toggleArticleCategory(id, enabled);
+    return { code: 200, data: null, msg: 'Category toggled' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+// ================================================================
+// 文章管理 API - 文章列表
+// ================================================================
+
+async function handleAdminArticleList(path, body) {
+  const { page = 1, size = 20, keyword, categoryId, status } = body;
+  try {
+    const result = getArticles(page, size, keyword, categoryId, status);
+    return { code: 200, data: result, msg: 'success' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminArticleDetail(path, body) {
+  const { id } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    const article = getArticleById(id);
+    if (!article) return { code: 404, data: null, msg: 'Article not found' };
+    return { code: 200, data: article, msg: 'success' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminArticleUpdate(path, body) {
+  const { id, title, content, summary, cover_image, category_id, author, status, is_top, sort_order } = body;
+  if (!title) return { code: 400, data: null, msg: 'title required' };
+  try {
+    if (id) {
+      updateArticle(id, { title, content, summary, cover_image, category_id, author, status, is_top, sort_order });
+      return { code: 200, data: { id }, msg: 'Article updated' };
+    } else {
+      const newId = createArticle({ title, content, summary, cover_image, category_id, author, status, is_top, sort_order });
+      return { code: 200, data: { id: newId }, msg: 'Article created' };
+    }
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminArticleDelete(path, body) {
+  const { id } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try {
+    deleteArticle(id);
+    return { code: 200, data: null, msg: 'Article deleted' };
+  } catch(e) {
+    return { code: 500, data: null, msg: e.message };
+  }
+}
+
+async function handleAdminArticleToggle(path, body) {
+  const { id, status } = body;
+  if (!id || !status) return { code: 400, data: null, msg: 'id and status required' };
+  try {
+    toggleArticle(id, status);
+    return { code: 200, data: null, msg: 'Article status updated' };
   } catch(e) {
     return { code: 500, data: null, msg: e.message };
   }

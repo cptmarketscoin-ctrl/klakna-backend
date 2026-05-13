@@ -911,6 +911,94 @@ function toggleHomepageConsultation(id, enabled) {
   run('UPDATE homepage_consultations SET enabled = ?, updated_at = datetime(\'now\') WHERE id = ?', [enabled ? 1 : 0, id]);
 }
 
+// ========== 文章分类管理 ==========
+function getArticleCategories(enabledOnly = false) {
+  const sql = enabledOnly
+    ? 'SELECT * FROM article_categories WHERE enabled = 1 ORDER BY sort_order ASC, id ASC'
+    : 'SELECT * FROM article_categories ORDER BY sort_order ASC, id ASC';
+  return queryAll(sql);
+}
+
+function getArticleCategoryById(id) {
+  return queryOne('SELECT * FROM article_categories WHERE id = ?', [id]);
+}
+
+function createArticleCategory(data) {
+  const { name, description, sort_order, enabled } = data;
+  run('INSERT INTO article_categories (name, description, sort_order, enabled) VALUES (?, ?, ?, ?)',
+    [name, description || '', sort_order || 0, enabled !== undefined ? enabled : 1]);
+  const row = queryOne('SELECT last_insert_rowid() as id');
+  return row ? row.id : 0;
+}
+
+function updateArticleCategory(id, data) {
+  const { name, description, sort_order, enabled } = data;
+  const sets = [], params = [];
+  if (name !== undefined) { sets.push('name = ?'); params.push(name); }
+  if (description !== undefined) { sets.push('description = ?'); params.push(description); }
+  if (sort_order !== undefined) { sets.push('sort_order = ?'); params.push(sort_order); }
+  if (enabled !== undefined) { sets.push('enabled = ?'); params.push(enabled ? 1 : 0); }
+  sets.push("updated_at = datetime('now')");
+  params.push(id);
+  run('UPDATE article_categories SET ' + sets.join(', ') + ' WHERE id = ?', params);
+}
+
+function deleteArticleCategory(id) {
+  run('DELETE FROM article_categories WHERE id = ?', [id]);
+}
+
+function toggleArticleCategory(id, enabled) {
+  run('UPDATE article_categories SET enabled = ?, updated_at = datetime(\'now\') WHERE id = ?', [enabled ? 1 : 0, id]);
+}
+
+// ========== 文章管理 ==========
+function getArticles(page = 1, size = 20, keyword, categoryId, status) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (a.title LIKE ? OR a.summary LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (categoryId) { where += ' AND a.category_id = ?'; params.push(categoryId); }
+  if (status) { where += ' AND a.status = ?'; params.push(status); }
+  const list = queryAll('SELECT a.*, c.name as category_name FROM articles a LEFT JOIN article_categories c ON a.category_id = c.id ' + where + ' ORDER BY a.is_top DESC, a.sort_order ASC, a.id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM articles a ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+function getArticleById(id) {
+  return queryOne('SELECT a.*, c.name as category_name FROM articles a LEFT JOIN article_categories c ON a.category_id = c.id WHERE a.id = ?', [id]);
+}
+
+function createArticle(data) {
+  const { title, content, summary, cover_image, category_id, author, status, is_top, sort_order } = data;
+  run('INSERT INTO articles (title, content, summary, cover_image, category_id, author, status, is_top, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [title, content || '', summary || '', cover_image || '', category_id || null, author || '', status || 'published', is_top ? 1 : 0, sort_order || 0]);
+  const row = queryOne('SELECT last_insert_rowid() as id');
+  return row ? row.id : 0;
+}
+
+function updateArticle(id, data) {
+  const { title, content, summary, cover_image, category_id, author, status, is_top, sort_order } = data;
+  const sets = [], params = [];
+  if (title !== undefined) { sets.push('title = ?'); params.push(title); }
+  if (content !== undefined) { sets.push('content = ?'); params.push(content); }
+  if (summary !== undefined) { sets.push('summary = ?'); params.push(summary); }
+  if (cover_image !== undefined) { sets.push('cover_image = ?'); params.push(cover_image); }
+  if (category_id !== undefined) { sets.push('category_id = ?'); params.push(category_id); }
+  if (author !== undefined) { sets.push('author = ?'); params.push(author); }
+  if (status !== undefined) { sets.push('status = ?'); params.push(status); }
+  if (is_top !== undefined) { sets.push('is_top = ?'); params.push(is_top ? 1 : 0); }
+  if (sort_order !== undefined) { sets.push('sort_order = ?'); params.push(sort_order); }
+  sets.push("updated_at = datetime('now')");
+  params.push(id);
+  run('UPDATE articles SET ' + sets.join(', ') + ' WHERE id = ?', params);
+}
+
+function deleteArticle(id) {
+  run('DELETE FROM articles WHERE id = ?', [id]);
+}
+
+function toggleArticle(id, status) {
+  run('UPDATE articles SET status = ?, updated_at = datetime(\'now\') WHERE id = ?', [status, id]);
+}
+
 // 导出新增函数
 module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDirty,
   // 配置管理
@@ -956,4 +1044,8 @@ module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDir
   getHomepageBanners, getHomepageBannerById, createHomepageBanner, updateHomepageBanner, deleteHomepageBanner, toggleHomepageBanner,
   // ========== 咨询项目管理 ==========
   getHomepageConsultations, getHomepageConsultationById, createHomepageConsultation, updateHomepageConsultation, deleteHomepageConsultation, toggleHomepageConsultation,
+  // ========== 文章分类管理 ==========
+  getArticleCategories, getArticleCategoryById, createArticleCategory, updateArticleCategory, deleteArticleCategory, toggleArticleCategory,
+  // ========== 文章管理 ==========
+  getArticles, getArticleById, createArticle, updateArticle, deleteArticle, toggleArticle,
 };

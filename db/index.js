@@ -603,6 +603,38 @@ function createTables(db) {
     )
   `);
 
+  // ========== 文章分类表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS article_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      sort_order INTEGER DEFAULT 0,
+      enabled INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 文章表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS articles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT,
+      summary TEXT,
+      cover_image TEXT,
+      category_id INTEGER,
+      author TEXT,
+      status TEXT DEFAULT 'published',
+      is_top INTEGER DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      view_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   markDirty();
 }
 
