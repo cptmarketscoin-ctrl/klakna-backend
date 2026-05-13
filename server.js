@@ -1392,7 +1392,23 @@ app.use(express.static('public'));
 // 必须放在代理之前，否则代理会拦截这些请求
 app.use('/ETH', express.static(path.join(__dirname, 'public/ETH')));
 
-app.use('/', proxy);
+// 🚫 已切断到原站 klakna.sbs 的代理，所有请求由本地处理
+// app.use('/', proxy);  // 旧：代理到 https://www.klakna.sbs
+
+// ========== 替代：未匹配的请求返回友好错误 ==========
+app.use((req, res) => {
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  const reqPath = (req.originalUrl || req.url || '').split('?')[0];
+  if (reqPath.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|ttf|ico|html|json)$/)) {
+    return res.status(404).json({ code: 404, msg: 'Resource not found' });
+  }
+  res.json({ code: 404, data: null, msg: 'Route not found: ' + req.method + ' ' + reqPath });
+});
 
 // ============================================================
 // 修改 health 端点（在代理后面追加更多状态信息）
