@@ -74,8 +74,8 @@ const routes = {
     '/exchange/rockieCoin/getBookTicker': () => ({ code: 200, data: {}, msg: 'success' }),
     '/exchange/rockieCoin/getDepth': () => ({ code: 200, data: [], msg: 'success' }),
     '/exchange/rockieCoin/getHistoricalTrades': () => ({ code: 200, data: [], msg: 'success' }),
-    '/exchange/rockieCoin/getKlines': () => ({ code: 200, data: [], msg: 'success' }),
-    '/exchange/rockieCoin/getMergeKLines': () => ({ code: 200, data: [], msg: 'success' }),
+    '/exchange/rockieCoin/getKlines': handleGetKlines,
+    '/exchange/rockieCoin/getMergeKLines': handleGetKlines,
     '/exchange/rockieCoin/getTradeDone': handleTransactionCurrency,
     '/exchange/rockieCoin/getTradeUndone': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
     '/exchange/rockieCoin/getTwentyFourHr': () => ({ code: 200, data: [], msg: 'success' }),
@@ -88,8 +88,8 @@ const routes = {
     '/exchange/rockieCoinFutures/getBookTicker': () => ({ code: 200, data: {}, msg: 'success' }),
     '/exchange/rockieCoinFutures/getDepth': () => ({ code: 200, data: [], msg: 'success' }),
     '/exchange/rockieCoinFutures/getHistoricalTrades': () => ({ code: 200, data: [], msg: 'success' }),
-    '/exchange/rockieCoinFutures/getKlines': () => ({ code: 200, data: [], msg: 'success' }),
-    '/exchange/rockieCoinFutures/getMergeKLines': () => ({ code: 200, data: [], msg: 'success' }),
+    '/exchange/rockieCoinFutures/getKlines': handleGetKlines,
+    '/exchange/rockieCoinFutures/getMergeKLines': handleGetKlines,
     '/exchange/rockieCoinFutures/getPrice': handleGetPrice,
     '/exchange/rockieCoinFutures/getTradeDone': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
     '/exchange/rockieCoinFutures/getTradeUndone': () => ({ code: 200, data: { content: { records: [], total: 0, size: 10, current: 1, pages: 0 } }, msg: 'success' }),
@@ -829,6 +829,37 @@ function handleGetPrice(path, body) {
   const price = prices[s];
   if (!price) return { code: 'ERROR', message: 'Symbol not found', data: null };
   return { symbol: s, price };
+}
+
+// 生成 K 线数据（模拟真实行情走势）
+function handleGetKlines(path, body) {
+  const symbol = (body.symbol || body.fromSymbol + 'USDT' || 'BTCUSDT').toUpperCase().replace(/^USDT/, '');
+  const period = body.period || body.range || '15min';
+  const cache = global.__priceCache || {};
+  const data = cache[symbol] || {};
+  const lastPrice = data.price || 80000;
+  const change = data.change_24h || 0;
+
+  // 生成 100 条 K 线
+  const klines = [];
+  const intervalMin = period === '1min' ? 1 : period === '5min' ? 5 : period === '15min' ? 15 : period === '30min' ? 30 : period === '1h' ? 60 : period === '4h' ? 240 : period === '1d' ? 1440 : 15;
+  const intervalMs = intervalMin * 60000;
+  const basePrice = lastPrice * (1 + change / 100);
+  
+  for (let i = 100; i >= 1; i--) {
+    const time = Date.now() - i * intervalMs;
+    const progress = (100 - i) / 100;
+    const trend = change / 100 * progress;
+    const noise = (Math.random() - 0.5) * basePrice * 0.005;
+    const midPrice = basePrice * (1 + trend) + noise;
+    const open = Number((midPrice * (1 + (Math.random() - 0.5) * 0.003)).toFixed(2));
+    const close = Number((midPrice * (1 + (Math.random() - 0.5) * 0.003)).toFixed(2));
+    const high = Number(Math.max(open, close) * (1 + Math.random() * 0.005).toFixed(2));
+    const low = Number(Math.min(open, close) * (1 - Math.random() * 0.005).toFixed(2));
+    const vol = Math.round((data.volume_24h || 1e8) / 100 * (0.5 + Math.random()));
+    klines.push([time, open, high, low, close, vol]);
+  }
+  return { code: 200, data: klines, msg: 'success' };
 }
 
 function handleMyState(path, body, user) {
