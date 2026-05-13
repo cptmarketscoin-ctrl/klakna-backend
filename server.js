@@ -98,6 +98,9 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-age', '86400');
   res.setHeader('Vary', 'Origin');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   console.log('[CORS]', req.method, req.url, '| Origin:', origin, '| Allowed:', allowed);
   
