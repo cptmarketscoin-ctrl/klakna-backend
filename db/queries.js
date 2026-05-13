@@ -1047,6 +1047,86 @@ function toggleAgentStatus(id, status) {
   run('UPDATE agents SET status = ?, updated_at = datetime(\'now\') WHERE id = ?', [status, id]);
 }
 
+// ========== 买入委托 ==========
+function getBuyOrders(page = 1, size = 20, keyword, symbol, status) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (order_no LIKE ? OR username LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (symbol) { where += ' AND symbol = ?'; params.push(symbol); }
+  if (status) { where += ' AND status = ?'; params.push(status); }
+  const list = queryAll('SELECT * FROM buy_orders ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM buy_orders ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+// ========== 卖出委托 ==========
+function getSellOrders(page = 1, size = 20, keyword, symbol, status) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (order_no LIKE ? OR username LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (symbol) { where += ' AND symbol = ?'; params.push(symbol); }
+  if (status) { where += ' AND status = ?'; params.push(status); }
+  const list = queryAll('SELECT * FROM sell_orders ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM sell_orders ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+// ========== 成交记录 ==========
+function getTradeRecords(page = 1, size = 20, keyword, symbol) {
+  let where = 'WHERE 1=1', params = [];
+  if (keyword) { where += ' AND (buy_order_no LIKE ? OR sell_order_no LIKE ? OR buyer_name LIKE ? OR seller_name LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%', '%' + keyword + '%', '%' + keyword + '%'); }
+  if (symbol) { where += ' AND symbol = ?'; params.push(symbol); }
+  const list = queryAll('SELECT * FROM trade_records ' + where + ' ORDER BY id DESC LIMIT ? OFFSET ?', [...params, size, (page - 1) * size]);
+  const cnt = queryOne('SELECT COUNT(*) as cnt FROM trade_records ' + where, params);
+  return { list, total: cnt ? cnt.cnt : 0, page, size };
+}
+
+// ========== 交易对 ==========
+function getTradingPairs(enabledOnly = false) {
+  const sql = enabledOnly
+    ? "SELECT * FROM trading_pairs WHERE status = 'active' ORDER BY sort_order ASC"
+    : 'SELECT * FROM trading_pairs ORDER BY sort_order ASC';
+  return queryAll(sql);
+}
+
+function getTradingPairById(id) {
+  return queryOne('SELECT * FROM trading_pairs WHERE id = ?', [id]);
+}
+
+function createTradingPair(data) {
+  const { pair_id, pair_name, symbol, quote_coin_name, base_coin_name, qty_decimals, price_decimals, min_qty, min_total, status, trade_status, sort_order } = data;
+  run('INSERT INTO trading_pairs (pair_id, pair_name, symbol, quote_coin_name, base_coin_name, qty_decimals, price_decimals, min_qty, min_total, status, trade_status, sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+    [pair_id || '', pair_name || '', symbol || '', quote_coin_name || '', base_coin_name || '', qty_decimals || 8, price_decimals || 2, min_qty || 0, min_total || 0, status || 'active', trade_status || 'open', sort_order || 0]);
+  const row = queryOne('SELECT last_insert_rowid() as id');
+  return row ? row.id : 0;
+}
+
+function updateTradingPair(id, data) {
+  const { pair_id, pair_name, symbol, quote_coin_name, base_coin_name, qty_decimals, price_decimals, min_qty, min_total, status, trade_status, sort_order } = data;
+  const sets = [], params = [];
+  if (pair_id !== undefined) { sets.push('pair_id = ?'); params.push(pair_id); }
+  if (pair_name !== undefined) { sets.push('pair_name = ?'); params.push(pair_name); }
+  if (symbol !== undefined) { sets.push('symbol = ?'); params.push(symbol); }
+  if (quote_coin_name !== undefined) { sets.push('quote_coin_name = ?'); params.push(quote_coin_name); }
+  if (base_coin_name !== undefined) { sets.push('base_coin_name = ?'); params.push(base_coin_name); }
+  if (qty_decimals !== undefined) { sets.push('qty_decimals = ?'); params.push(qty_decimals); }
+  if (price_decimals !== undefined) { sets.push('price_decimals = ?'); params.push(price_decimals); }
+  if (min_qty !== undefined) { sets.push('min_qty = ?'); params.push(min_qty); }
+  if (min_total !== undefined) { sets.push('min_total = ?'); params.push(min_total); }
+  if (status !== undefined) { sets.push('status = ?'); params.push(status); }
+  if (trade_status !== undefined) { sets.push('trade_status = ?'); params.push(trade_status); }
+  if (sort_order !== undefined) { sets.push('sort_order = ?'); params.push(sort_order); }
+  sets.push("updated_at = datetime('now')");
+  params.push(id);
+  run('UPDATE trading_pairs SET ' + sets.join(', ') + ' WHERE id = ?', params);
+}
+
+function deleteTradingPair(id) {
+  run('DELETE FROM trading_pairs WHERE id = ?', [id]);
+}
+
+function toggleTradingPair(id, status) {
+  run('UPDATE trading_pairs SET status = ?, updated_at = datetime(\'now\') WHERE id = ?', [status, id]);
+}
+
 // 导出新增函数
 module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDirty,
   // 配置管理
@@ -1098,4 +1178,7 @@ module.exports = { queryOne, queryAll, run, ensureDb, getDbSync, saveDb, markDir
   getArticles, getArticleById, createArticle, updateArticle, deleteArticle, toggleArticle,
   // ========== 代理管理 ==========
   getAgents, getAgentById, createAgent, updateAgent, deleteAgent, toggleAgentStatus,
+  // ========== 币币交易 ==========
+  getBuyOrders, getSellOrders, getTradeRecords,
+  getTradingPairs, getTradingPairById, createTradingPair, updateTradingPair, deleteTradingPair, toggleTradingPair,
 };

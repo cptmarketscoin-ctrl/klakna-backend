@@ -653,6 +653,92 @@ function createTables(db) {
     )
   `);
 
+  // ========== 买入委托表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS buy_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_no TEXT,
+      user_id INTEGER,
+      username TEXT,
+      symbol TEXT,
+      type TEXT DEFAULT 'limit',
+      entrust_price REAL DEFAULT 0,
+      trigger_price REAL DEFAULT 0,
+      amount REAL DEFAULT 0,
+      traded_amount REAL DEFAULT 0,
+      money REAL DEFAULT 0,
+      traded_money REAL DEFAULT 0,
+      status TEXT DEFAULT 'pending',
+      detail TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 卖出委托表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sell_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_no TEXT,
+      user_id INTEGER,
+      username TEXT,
+      symbol TEXT,
+      type TEXT DEFAULT 'limit',
+      entrust_price REAL DEFAULT 0,
+      trigger_price REAL DEFAULT 0,
+      amount REAL DEFAULT 0,
+      traded_amount REAL DEFAULT 0,
+      money REAL DEFAULT 0,
+      traded_money REAL DEFAULT 0,
+      status TEXT DEFAULT 'pending',
+      detail TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 成交记录表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS trade_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER,
+      buy_order_no TEXT,
+      sell_order_no TEXT,
+      buyer_id INTEGER,
+      buyer_name TEXT,
+      seller_id INTEGER,
+      seller_name TEXT,
+      unit_price REAL DEFAULT 0,
+      symbol TEXT,
+      trade_amount REAL DEFAULT 0,
+      trade_money REAL DEFAULT 0,
+      trade_buy_fee REAL DEFAULT 0,
+      trade_sell_fee REAL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // ========== 交易对表 ==========
+  db.run(`
+    CREATE TABLE IF NOT EXISTS trading_pairs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pair_id TEXT,
+      pair_name TEXT,
+      symbol TEXT,
+      quote_coin_name TEXT,
+      base_coin_name TEXT,
+      qty_decimals INTEGER DEFAULT 8,
+      price_decimals INTEGER DEFAULT 2,
+      min_qty REAL DEFAULT 0,
+      min_total REAL DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      trade_status TEXT DEFAULT 'open',
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   markDirty();
 }
 

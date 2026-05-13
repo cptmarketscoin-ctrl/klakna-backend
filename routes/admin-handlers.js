@@ -58,6 +58,9 @@ const { queryOne, queryAll, run, getDbSync, saveDb,
   getArticles, getArticleById, createArticle, updateArticle, deleteArticle, toggleArticle,
   // ========== 代理管理 ==========
   getAgents, getAgentById, createAgent, updateAgent, deleteAgent, toggleAgentStatus,
+  // ========== 币币交易 ==========
+  getBuyOrders, getSellOrders, getTradeRecords,
+  getTradingPairs, getTradingPairById, createTradingPair, updateTradingPair, deleteTradingPair, toggleTradingPair,
 } = require('../db/queries');
 const { signToken } = require('../middleware/auth');
 const config = require('../config');
@@ -976,6 +979,14 @@ const adminRoutes = {
     '/admin/agent/update': handleAdminAgentUpdate,
     '/admin/agent/delete': handleAdminAgentDelete,
     '/admin/agent/toggle': handleAdminAgentToggle,
+    // ========== 币币交易 ==========
+    '/admin/buy-order/list': handleAdminBuyOrderList,
+    '/admin/sell-order/list': handleAdminSellOrderList,
+    '/admin/trade-record/list': handleAdminTradeRecordList,
+    '/admin/trading-pair/list': handleAdminTradingPairList,
+    '/admin/trading-pair/update': handleAdminTradingPairUpdate,
+    '/admin/trading-pair/delete': handleAdminTradingPairDelete,
+    '/admin/trading-pair/toggle': handleAdminTradingPairToggle,
   }
 };
 
@@ -1982,6 +1993,70 @@ async function handleAdminAgentToggle(path, body) {
   } catch(e) {
     return { code: 500, data: null, msg: e.message };
   }
+}
+
+// ================================================================
+// 币币交易 API
+// ================================================================
+
+async function handleAdminBuyOrderList(path, body) {
+  const { page = 1, size = 20, keyword, symbol, status } = body;
+  try {
+    const result = getBuyOrders(page, size, keyword, symbol, status);
+    return { code: 200, data: result, msg: 'success' };
+  } catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+async function handleAdminSellOrderList(path, body) {
+  const { page = 1, size = 20, keyword, symbol, status } = body;
+  try {
+    const result = getSellOrders(page, size, keyword, symbol, status);
+    return { code: 200, data: result, msg: 'success' };
+  } catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+async function handleAdminTradeRecordList(path, body) {
+  const { page = 1, size = 20, keyword, symbol } = body;
+  try {
+    const result = getTradeRecords(page, size, keyword, symbol);
+    return { code: 200, data: result, msg: 'success' };
+  } catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+async function handleAdminTradingPairList(path, body) {
+  const { enabledOnly } = body;
+  try {
+    const list = getTradingPairs(enabledOnly);
+    return { code: 200, data: { list }, msg: 'success' };
+  } catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+async function handleAdminTradingPairUpdate(path, body) {
+  const { id, pair_id, pair_name, symbol, quote_coin_name, base_coin_name, qty_decimals, price_decimals, min_qty, min_total, status, trade_status, sort_order } = body;
+  if (!pair_name && !symbol) return { code: 400, data: null, msg: 'pair_name or symbol required' };
+  try {
+    if (id) {
+      updateTradingPair(id, { pair_id, pair_name, symbol, quote_coin_name, base_coin_name, qty_decimals, price_decimals, min_qty, min_total, status, trade_status, sort_order });
+      return { code: 200, data: { id }, msg: 'Pair updated' };
+    } else {
+      const newId = createTradingPair({ pair_id, pair_name, symbol, quote_coin_name, base_coin_name, qty_decimals, price_decimals, min_qty, min_total, status, trade_status, sort_order });
+      return { code: 200, data: { id: newId }, msg: 'Pair created' };
+    }
+  } catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+async function handleAdminTradingPairDelete(path, body) {
+  const { id } = body;
+  if (!id) return { code: 400, data: null, msg: 'id required' };
+  try { deleteTradingPair(id); return { code: 200, data: null, msg: 'Pair deleted' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
+}
+
+async function handleAdminTradingPairToggle(path, body) {
+  const { id, status } = body;
+  if (!id || !status) return { code: 400, data: null, msg: 'id and status required' };
+  try { toggleTradingPair(id, status); return { code: 200, data: null, msg: 'Pair toggled' }; }
+  catch(e) { return { code: 500, data: null, msg: e.message }; }
 }
 
 module.exports = { match, verifyAdmin };
