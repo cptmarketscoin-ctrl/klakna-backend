@@ -428,11 +428,38 @@ app.use(async (req, res, next) => {
     return handleAdminAPI(req, res, reqPath);
   }
 
-  // ========== rockieFile/getFile 静态文件服务 ==========
+  // ========== CoinGecko 币种ID映射（用于图标自动获取）==========
+  const coingeckoIds = {
+    BTC:'bitcoin', ETH:'ethereum', BNB:'binancecoin', SOL:'solana', XRP:'ripple',
+    DOGE:'dogecoin', ADA:'cardano', AVAX:'avalanche-2', DOT:'polkadot', LINK:'chainlink',
+    UNI:'uniswap', MATIC:'matic-network', LTC:'litecoin', TRX:'tron', ATOM:'cosmos',
+    ETC:'ethereum-classic', FIL:'filecoin', APT:'aptos', ARB:'arbitrum', OP:'optimism',
+    NEAR:'near', FLOW:'flow', ICP:'internet-computer', GRT:'the-graph', AAVE:'aave',
+    ALGO:'algorand', SAND:'the-sandbox', MANA:'decentraland', EGLD:'elrond-erd-2', XTZ:'tezos',
+  };
+  async function fetchCoinIcon(symbol, destPath) {
+    const cgId = coingeckoIds[symbol.toUpperCase()];
+    if (!cgId) return null;
+    try {
+      const url = 'https://api.coingecko.com/api/v3/coins/' + cgId + '?localization=false&tickers=false&community_data=false&developer_data=false';
+      const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      const imgUrl = data?.image?.small || data?.image?.large;
+      if (!imgUrl) return null;
+      const imgResp = await fetch(imgUrl);
+      if (!imgResp.ok) return null;
+      const buf = Buffer.from(await imgResp.arrayBuffer());
+      require('fs').writeFileSync(destPath, buf);
+      console.log('[CoinGecko] ✅ 缓存:', symbol, '→', destPath, '(' + buf.length + 'B)');
+      return buf;
+    } catch (e) { console.log('[CoinGecko] ⚠️ 获取失败:', symbol, e.message); return null; }
+  }
+
+  // ========== rockieFile/getFile 静态文件服务（含CoinGecko自动补全）==========
   if (reqPath.startsWith('/exchange/rockieFile/getFile')) {
     const urlObj = new URL(req.url, 'http://localhost');
     const fileId = urlObj.searchParams.get('fileId') || '';
-    // 从本地 public/ETH 目录读取并返回文件内容
     if (fileId && !fileId.includes('undefined')) {
       const localPath = fileId.replace(/^\/ETH\//, 'public/ETH/');
       const fullPath = path.join(__dirname, localPath);
@@ -443,8 +470,23 @@ app.use(async (req, res, next) => {
         res.setHeader('Cache-Control', 'public, max-age=3600');
         return res.sendFile(fullPath);
       }
+      // 文件不存在 → 尝试从CoinGecko自动获取
+      const coinMatch = localPath.match(/\/static\/img\/([A-Z]+)\.(png|svg)$/i);
+      if (coinMatch) {
+        const symbol = coinMatch[1].toUpperCase();
+        if (coingeckoIds[symbol]) {
+          const dir = path.dirname(fullPath);
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+          const buf = await fetchCoinIcon(symbol, fullPath);
+          if (buf) {
+            res.setHeader('Content-Type', 'image/png');
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+            return res.end(buf);
+          }
+        }
+      }
     }
-    // 文件不存在 → 透明 SVG
+    // 文件不存在且无法获取 → 透明 SVG
     res.setHeader('Content-Type', 'image/svg+xml');
     res.end('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>');
     return;
